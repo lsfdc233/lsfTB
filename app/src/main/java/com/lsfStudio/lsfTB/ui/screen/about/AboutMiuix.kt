@@ -20,7 +20,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -63,6 +71,17 @@ fun AboutScreenMiuix(
     val backdrop = rememberBlurBackdrop(enableBlur)
     val blurActive = backdrop != null
     val barColor = if (blurActive) Color.Transparent else colorScheme.surface
+    
+    // 对话框状态
+    var showUpdateDialog by remember { mutableStateOf(false) }
+    var showUpToDateDialog by remember { mutableStateOf(false) }
+    
+    // 当检查到新版本时显示对话框
+    androidx.compose.runtime.LaunchedEffect(state.latestVersionInfo, state.isCheckingUpdate) {
+        if (!state.isCheckingUpdate && state.latestVersionInfo.versionCode > 0) {
+            showUpdateDialog = true
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -92,6 +111,38 @@ fun AboutScreenMiuix(
         popupHost = { },
         contentWindowInsets = WindowInsets.systemBars.add(WindowInsets.displayCutout).only(WindowInsetsSides.Horizontal)
     ) { innerPadding ->
+        // 更新对话框
+        if (showUpdateDialog) {
+            AlertDialog(
+                onDismissRequest = { showUpdateDialog = false },
+                title = { Text("发现新版本") },
+                text = {
+                    Column {
+                        Text("${state.latestVersionInfo.versionName}")
+                        if (state.latestVersionInfo.changelog.isNotEmpty()) {
+                            Spacer(Modifier.height(8.dp))
+                            Text(state.latestVersionInfo.changelog.take(200))
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showUpdateDialog = false
+                        if (state.latestVersionInfo.downloadUrl.isNotEmpty()) {
+                            actions.onOpenLink(state.latestVersionInfo.downloadUrl)
+                        }
+                    }) {
+                        Text("前往下载")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showUpdateDialog = false }) {
+                        Text("取消")
+                    }
+                }
+            )
+        }
+        
         Box(modifier = if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier) {
             LazyColumn(
                 modifier = Modifier
@@ -139,6 +190,21 @@ fun AboutScreenMiuix(
                     Card(
                         modifier = Modifier.padding(bottom = 12.dp)
                     ) {
+                        ArrowPreference(
+                            title = "立即检查更新",
+                            summary = if (state.isCheckingUpdate) "检查中..." else "点击检查是否有新版本",
+                            startAction = {
+                                Icon(
+                                    Icons.Rounded.Refresh,
+                                    modifier = Modifier.padding(end = 6.dp),
+                                    contentDescription = "立即检查更新",
+                                    tint = colorScheme.onBackground
+                                )
+                            },
+                            onClick = actions.onCheckUpdate,
+                            enabled = !state.isCheckingUpdate
+                        )
+                        
                         state.links.forEach {
                             ArrowPreference(
                                 title = it.fullText,
