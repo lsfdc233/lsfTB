@@ -48,7 +48,10 @@ fun checkNewVersion(context: Context): LatestVersionInfo {
             }
 
             // 解析 JSON 响应
-            val body = response.body.string() ?: return@runCatching defaultValue
+            val body = response.body.string()
+            if (body.isEmpty()) {
+                return@runCatching defaultValue
+            }
             val json = JSONObject(body)
 
             // 获取更新日志
@@ -87,7 +90,6 @@ fun checkNewVersion(context: Context): LatestVersionInfo {
         }
     }.getOrElse {
         // 发生异常时返回默认值
-        it.printStackTrace()
         defaultValue
     }
 }
