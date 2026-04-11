@@ -7,7 +7,7 @@
 ![Compose](https://img.shields.io/badge/Jetpack%20Compose-1.7+-4285F4?logo=jetpackcompose)
 ![API](https://img.shields.io/badge/API-31+-34A853?logo=android)
 
-某初中牲突发奇想基于miuix制作的个人数字中枢
+某神秘初中牲突发奇想基于miuix制作的个人数字中枢
 
 </div>
 
