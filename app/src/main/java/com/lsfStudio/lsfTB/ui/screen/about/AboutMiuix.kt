@@ -20,8 +20,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.runtime.Composable
@@ -43,6 +41,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lsfStudio.lsfTB.R
+import com.lsfStudio.lsfTB.ui.component.dialog.ConfirmDialogMiuix
 import com.lsfStudio.lsfTB.ui.theme.LocalEnableBlur
 import com.lsfStudio.lsfTB.ui.util.BlurredBar
 import com.lsfStudio.lsfTB.ui.util.rememberBlurBackdrop
@@ -71,16 +70,6 @@ fun AboutScreenMiuix(
     val backdrop = rememberBlurBackdrop(enableBlur)
     val blurActive = backdrop != null
     val barColor = if (blurActive) Color.Transparent else colorScheme.surface
-    
-    // 对话框状态
-    var showUpdateDialog by remember { mutableStateOf(false) }
-    
-    // 当检查到新版本时显示对话框
-    androidx.compose.runtime.LaunchedEffect(state.latestVersionInfo) {
-        if (state.latestVersionInfo.versionCode > 0) {
-            showUpdateDialog = true
-        }
-    }
 
     Scaffold(
         topBar = {
@@ -110,50 +99,41 @@ fun AboutScreenMiuix(
         popupHost = { },
         contentWindowInsets = WindowInsets.systemBars.add(WindowInsets.displayCutout).only(WindowInsetsSides.Horizontal)
     ) { innerPadding ->
-        // 更新对话框
-        if (showUpdateDialog) {
-            AlertDialog(
-                onDismissRequest = { 
-                    showUpdateDialog = false
-                    // 关闭对话框后清除状态
-                    actions.onCheckUpdate // 这个不会触发，只是占位
-                },
-                title = { Text("发现新版本") },
-                text = {
-                    Column {
-                        Text("${state.latestVersionInfo.versionName}")
-                        if (state.latestVersionInfo.changelog.isNotEmpty()) {
-                            Spacer(Modifier.height(8.dp))
-                            Text(state.latestVersionInfo.changelog.take(200))
-                        }
-                    }
-                },
-                confirmButton = {
-                    TextButton(onClick = {
-                        showUpdateDialog = false
-                        if (state.latestVersionInfo.downloadUrl.isNotEmpty()) {
-                            actions.onOpenLink(state.latestVersionInfo.downloadUrl)
-                        }
-                    }) {
-                        Text("前往下载")
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showUpdateDialog = false }) {
-                        Text("取消")
+        // 更新对话框（使用 KernelSU 风格的确认对话框）
+        ConfirmDialogMiuix(
+            title = "发现新版本",
+            content = if (state.latestVersionInfo.changelog.isNotEmpty()) {
+                "${state.latestVersionInfo.versionName}\n\n${state.latestVersionInfo.changelog}"
+            } else {
+                state.latestVersionInfo.versionName
+            },
+            confirmText = "前往下载",
+            dismissText = "取消",
+            onConfirm = {
+                if (state.latestVersionInfo.downloadUrl.isNotEmpty()) {
+                    actions.onOpenLink(state.latestVersionInfo.downloadUrl)
+                }
+            },
+            onDismiss = {
+                actions.onDismissUpdateDialog()
+            },
+            showDialog = remember { mutableStateOf(false) }.also { dialogState ->
+                androidx.compose.runtime.LaunchedEffect(state.latestVersionInfo) {
+                    if (state.latestVersionInfo.versionCode > 0) {
+                        dialogState.value = true
                     }
                 }
-            )
-        }
+            }
+        )
         
-        // “已是最新版本”对话框
+        // "已是最新版本"对话框
         if (state.showUpToDateDialog) {
-            AlertDialog(
+            androidx.compose.material3.AlertDialog(
                 onDismissRequest = { actions.onDismissUpToDateDialog() },
                 title = { Text("已是最新版本") },
                 text = { Text("当前版本：${state.versionName}") },
                 confirmButton = {
-                    TextButton(onClick = { actions.onDismissUpToDateDialog() }) {
+                    androidx.compose.material3.TextButton(onClick = { actions.onDismissUpToDateDialog() }) {
                         Text("确定")
                     }
                 }

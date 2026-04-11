@@ -102,6 +102,10 @@ android {
 
         buildConfigField("boolean", "IS_PR_BUILD", isPrBuild.toString())
         
+        // 从 gradle.properties 或 local.properties 读取 GitHub Token（可选）
+        val githubToken = project.findProperty("GITHUB_TOKEN")?.toString() ?: ""
+        buildConfigField("String", "GITHUB_TOKEN", "\"$githubToken\"")
+        
         // 只保留 arm64-v8a 架构，移除其他架构以减小APK体积
         ndk {
             abiFilters += listOf("arm64-v8a")

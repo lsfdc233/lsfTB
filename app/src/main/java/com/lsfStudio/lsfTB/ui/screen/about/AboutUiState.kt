@@ -11,7 +11,7 @@ data class AboutUiState(
     val links: List<LinkInfo>,
     val isCheckingUpdate: Boolean = false,
     val latestVersionInfo: LatestVersionInfo = LatestVersionInfo.Empty,
-    val showUpToDateDialog: Boolean = false, // 显示“已是最新版本”对话框
+    val showUpToDateDialog: Boolean = false, // 显示"已是最新版本"对话框
 )
 
 @Immutable
@@ -19,5 +19,6 @@ data class AboutScreenActions(
     val onBack: () -> Unit,
     val onOpenLink: (String) -> Unit,
     val onCheckUpdate: () -> Unit,
-    val onDismissUpToDateDialog: () -> Unit, // 关闭“已是最新版本”对话框
+    val onDismissUpToDateDialog: () -> Unit, // 关闭"已是最新版本"对话框
+    val onDismissUpdateDialog: () -> Unit, // 关闭"发现新版本"对话框
 )

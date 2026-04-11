@@ -56,23 +56,32 @@ class AboutViewModel : ViewModel() {
             _uiState.value = _uiState.value.copy(isCheckingUpdate = true, showUpToDateDialog = false)
             
             try {
+                android.util.Log.d("AboutViewModel", "开始检查更新...")
+                
                 // 执行检查更新
                 val latestVersion = checkNewVersion(context)
+                
+                android.util.Log.d("AboutViewModel", "获取到最新版本: ${latestVersion.versionName}, versionCode: ${latestVersion.versionCode}")
                 
                 // 获取当前版本代码
                 val currentVersionCode = com.lsfStudio.lsfTB.BuildConfig.VERSION_CODE
                 
+                android.util.Log.d("AboutViewModel", "当前版本 code: $currentVersionCode")
+                
                 // 比较版本号
                 val hasUpdate = latestVersion.versionCode > currentVersionCode
+                
+                android.util.Log.d("AboutViewModel", "是否有更新: $hasUpdate")
                 
                 // 更新状态
                 _uiState.value = _uiState.value.copy(
                     isCheckingUpdate = false,
                     latestVersionInfo = if (hasUpdate) latestVersion else LatestVersionInfo.Empty,
-                    showUpToDateDialog = !hasUpdate // 如果没有更新，显示“已是最新版本”对话框
+                    showUpToDateDialog = !hasUpdate // 如果没有更新，显示"已是最新版本"对话框
                 )
             } catch (e: Exception) {
                 // 发生异常时重置状态
+                android.util.Log.e("AboutViewModel", "检查更新失败: ${e.message}", e)
                 _uiState.value = _uiState.value.copy(
                     isCheckingUpdate = false,
                     latestVersionInfo = LatestVersionInfo.Empty,
@@ -83,9 +92,16 @@ class AboutViewModel : ViewModel() {
     }
     
     /**
-     * 关闭“已是最新版本”对话框
+     * 关闭"已是最新版本"对话框
      */
     fun dismissUpToDateDialog() {
         _uiState.value = _uiState.value.copy(showUpToDateDialog = false)
+    }
+    
+    /**
+     * 清除最新版本信息（用于关闭更新对话框后）
+     */
+    fun clearLatestVersionInfo() {
+        _uiState.value = _uiState.value.copy(latestVersionInfo = LatestVersionInfo.Empty)
     }
 }

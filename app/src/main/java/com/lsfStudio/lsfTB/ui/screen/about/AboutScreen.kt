@@ -35,9 +35,14 @@ fun AboutScreen() {
     
     val actions = AboutScreenActions(
         onBack = dropUnlessResumed { navigator.pop() },
-        onOpenLink = uriHandler::openUri,
+        onOpenLink = {
+            uriHandler.openUri(it)
+            // 打开链接后清除版本信息，允许再次检查
+            viewModel.clearLatestVersionInfo()
+        },
         onCheckUpdate = { viewModel.checkUpdate(context) },
         onDismissUpToDateDialog = { viewModel.dismissUpToDateDialog() },
+        onDismissUpdateDialog = { viewModel.clearLatestVersionInfo() },
     )
 
     AboutScreenMiuix(uiState, actions)
