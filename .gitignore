@@ -22,7 +22,6 @@ Thumbs.db
 
 # Kotlin
 *.class
-*.jar
 *.war
 *.ear
 .kotlin/
