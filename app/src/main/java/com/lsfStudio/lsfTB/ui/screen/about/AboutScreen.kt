@@ -28,7 +28,7 @@ fun AboutScreen() {
     LaunchedEffect(Unit) {
         viewModel.initialize(
             appName = "lsfTB",
-            versionName = BuildConfig.VERSION_NAME,
+            versionName = "${BuildConfig.VERSION_NAME}_${BuildConfig.VERSION_CODE}",
             links = extractLinks(htmlString)
         )
     }

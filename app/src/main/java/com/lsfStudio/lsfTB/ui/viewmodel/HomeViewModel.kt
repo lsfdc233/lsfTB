@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.lsfStudio.lsfTB.BuildConfig
 import com.lsfStudio.lsfTB.ui.screen.home.HomeUiState
 import com.lsfStudio.lsfTB.ui.util.LatestVersionInfo
 import com.lsfStudio.lsfTB.ui.util.checkNewVersion
@@ -21,8 +22,8 @@ class HomeViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(
         HomeUiState(
             appName = "lsfTB",
-            appVersion = "1.0.0",
-            appVersionCode = 1L,
+            appVersion = "${BuildConfig.VERSION_NAME}_${BuildConfig.VERSION_CODE}",
+            appVersionCode = BuildConfig.VERSION_CODE.toLong(),
             isSafeMode = false,
             checkUpdateEnabled = true,
             latestVersionInfo = LatestVersionInfo.Empty
