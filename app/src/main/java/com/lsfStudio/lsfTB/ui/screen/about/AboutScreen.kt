@@ -11,9 +11,7 @@ fun AboutScreen() {
     val navigator = LocalNavigator.current
     val uriHandler = LocalUriHandler.current
     val htmlString = """
-        在 <b><a href="https://github.com/tiann/KernelSU">GitHub</a></b> 查看源码<br/>
-        加入我们的 <b><a href="https://t.me/KernelSU">Telegram</a></b> 频道<br/>
-        加入我们的 <b><a href="https://pd.qq.com/s/8lipl1brp">QQ</a></b> 频道
+        在 <b><a href="https://github.com/lsfdc233/lsfTB">GitHub</a></b> 查看源码
     """.trimIndent()
     val state = AboutUiState(
         title = "关于",
