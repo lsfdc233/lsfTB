@@ -170,5 +170,7 @@ dependencies {
 
     implementation(libs.backdrop)
 
+    implementation(libs.okhttp)
+
     implementation(libs.material.kolor)
 }

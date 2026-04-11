@@ -1,6 +1,7 @@
 package com.lsfStudio.lsfTB.ui.screen.home
 
 import androidx.compose.runtime.Immutable
+import com.lsfStudio.lsfTB.ui.util.LatestVersionInfo
 
 @Immutable
 data class HomeUiState(
@@ -9,6 +10,7 @@ data class HomeUiState(
     val appVersionCode: Long = 1,
     val isSafeMode: Boolean = false,
     val checkUpdateEnabled: Boolean = true,
+    val latestVersionInfo: LatestVersionInfo = LatestVersionInfo.Empty,
 )
 
 @Immutable
