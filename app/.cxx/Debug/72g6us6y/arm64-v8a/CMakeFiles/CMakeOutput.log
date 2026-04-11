@@ -1,0 +1,259 @@
+The target system is: Android - 1 - aarch64
+The host system is: Windows - 10.0.29560 - AMD64
+Compiling the C compiler identification source file "CMakeCCompilerId.c" succeeded.
+Compiler: D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/bin/clang.exe 
+Build flags: -g;-DANDROID;-fdata-sections;-ffunction-sections;-funwind-tables;-fstack-protector-strong;-no-canonical-prefixes;-D_FORTIFY_SOURCE=2;-Wformat;-Werror=format-security;-Wall;-Qunused-arguments;-fvisibility=hidden;-fvisibility-inlines-hidden;-fno-exceptions;-fno-stack-protector;-fomit-frame-pointer;-Wno-builtin-macro-redefined;-Wno-unused-value;-D__FILE__=__FILE_NAME__;-std=c2x
+Id flags: -c;--target=aarch64-none-linux-android31 
+
+The output was:
+0
+
+
+Compilation of the C compiler identification source "CMakeCCompilerId.c" produced "CMakeCCompilerId.o"
+
+The C compiler identification is Clang, found in "D:/Java/Projects/lsfTB/app/.cxx/Debug/72g6us6y/arm64-v8a/CMakeFiles/3.22.1-g37088a8-dirty/CompilerIdC/CMakeCCompilerId.o"
+
+Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" succeeded.
+Compiler: D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/bin/clang++.exe 
+Build flags: -g;-DANDROID;-fdata-sections;-ffunction-sections;-funwind-tables;-fstack-protector-strong;-no-canonical-prefixes;-D_FORTIFY_SOURCE=2;-Wformat;-Werror=format-security;-nostdinc++;-Wall;-Qunused-arguments;-fvisibility=hidden;-fvisibility-inlines-hidden;-fno-exceptions;-fno-stack-protector;-fomit-frame-pointer;-Wno-builtin-macro-redefined;-Wno-unused-value;-D__FILE__=__FILE_NAME__;-fno-rtti;-std=c++2b
+Id flags: -c;--target=aarch64-none-linux-android31 
+
+The output was:
+0
+
+
+Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "CMakeCXXCompilerId.o"
+
+The CXX compiler identification is Clang, found in "D:/Java/Projects/lsfTB/app/.cxx/Debug/72g6us6y/arm64-v8a/CMakeFiles/3.22.1-g37088a8-dirty/CompilerIdCXX/CMakeCXXCompilerId.o"
+
+Detecting C compiler ABI info compiled with the following output:
+Change Dir: D:/Java/Projects/lsfTB/app/.cxx/Debug/72g6us6y/arm64-v8a/CMakeFiles/CMakeTmp
+
+Run Build Command(s):D:\Java\Android-SDK\cmake\3.22.1\bin\ninja.exe cmTC_2fd22 && [1/2] Building C object CMakeFiles/cmTC_2fd22.dir/CMakeCCompilerABI.c.o
+Android (14475230, based on r574158) clang version 21.0.0 (https://android.googlesource.com/toolchain/llvm-project 9f872551d3c681d06fd303b36f16ed5c274735eb)
+Target: aarch64-none-linux-android31
+Thread model: posix
+InstalledDir: D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/bin
+ (in-process)
+ "D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/bin/clang.exe" -cc1 -triple aarch64-none-linux-android31 -emit-obj -disable-free -clear-ast-before-backend -disable-llvm-verifier -discard-value-names -main-file-name CMakeCCompilerABI.c -mrelocation-model pic -pic-level 2 -pic-is-pie -mframe-pointer=none -ffp-contract=on -fno-rounding-math -mconstructor-aliases -funwind-tables=2 -enable-tlsdesc -target-cpu generic -target-feature +v8a -target-feature +fp-armv8 -target-feature +neon -target-feature +fix-cortex-a53-835769 -target-abi aapcs -debug-info-kind=constructor -dwarf-version=4 -debugger-tuning=gdb -fdebug-compilation-dir=D:/Java/Projects/lsfTB/app/.cxx/Debug/72g6us6y/arm64-v8a/CMakeFiles/CMakeTmp -v -ffunction-sections -fdata-sections -fcoverage-compilation-dir=D:/Java/Projects/lsfTB/app/.cxx/Debug/72g6us6y/arm64-v8a/CMakeFiles/CMakeTmp -resource-dir D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21 -dependency-file "CMakeFiles\\cmTC_2fd22.dir\\CMakeCCompilerABI.c.o.d" -MT CMakeFiles/cmTC_2fd22.dir/CMakeCCompilerABI.c.o -sys-header-deps -D ANDROID -D _FORTIFY_SOURCE=2 -D __FILE__=__FILE_NAME__ -isysroot D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot -internal-isystem D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/include -internal-isystem D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/local/include -internal-externc-isystem D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include/aarch64-linux-android -internal-externc-isystem D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/include -internal-externc-isystem D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include -Wformat -Wall -Wno-builtin-macro-redefined -Wno-unused-value -std=c2x -ferror-limit 19 -fvisibility=hidden -fvisibility-inlines-hidden -fno-signed-char -fgnuc-version=4.2.1 -fskip-odr-check-in-gmf -target-feature +outline-atomics -D__GCC_HAVE_DWARF2_CFI_ASM=1 -o CMakeFiles/cmTC_2fd22.dir/CMakeCCompilerABI.c.o -x c D:/Java/Android-SDK/cmake/3.22.1/share/cmake-3.22/Modules/CMakeCCompilerABI.c
+clang -cc1 version 21.0.0 based upon LLVM 21.0.0 default target x86_64-w64-windows-gnu
+ignoring nonexistent directory "D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/local/include"
+ignoring nonexistent directory "D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/include"
+#include "..." search starts here:
+#include <...> search starts here:
+ D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/include
+ D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include/aarch64-linux-android
+ D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include
+End of search list.
+[2/2] Linking C executable cmTC_2fd22
+Android (14475230, based on r574158) clang version 21.0.0 (https://android.googlesource.com/toolchain/llvm-project 9f872551d3c681d06fd303b36f16ed5c274735eb)
+Target: aarch64-none-linux-android31
+Thread model: posix
+InstalledDir: D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/bin
+ "D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/bin/ld.lld" --sysroot=D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot -EL --fix-cortex-a53-843419 -z now -z relro -z max-page-size=16384 --use-android-relr-tags --pack-dyn-relocs=relr --hash-style=gnu --eh-frame-hdr -m aarch64linux -pie -dynamic-linker /system/bin/linker64 -o cmTC_2fd22 D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/31/crtbegin_dynamic.o -LD:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/lib/linux/aarch64 -LD:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/31 -LD:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android -LD:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib --build-id=sha1 --no-undefined-version --fatal-warnings --no-undefined CMakeFiles/cmTC_2fd22.dir/CMakeCCompilerABI.c.o D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/lib/linux/libclang_rt.builtins-aarch64-android.a -l:libunwind.a -ldl -lc D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/lib/linux/libclang_rt.builtins-aarch64-android.a -l:libunwind.a -ldl D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/31/crtend_android.o
+
+
+
+Parsed C implicit include dir info from above output: rv=done
+  found start of include info
+  found start of implicit include info
+    add: [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/include]
+    add: [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include/aarch64-linux-android]
+    add: [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include]
+  end of search list found
+  collapse include dir [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/include] ==> [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/include]
+  collapse include dir [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include/aarch64-linux-android] ==> [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include/aarch64-linux-android]
+  collapse include dir [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include] ==> [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include]
+  implicit include dirs: [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/include;D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include/aarch64-linux-android;D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include]
+
+
+Parsed C implicit link information from above output:
+  link line regex: [^( *|.*[/\])(ld\.lld\.exe|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\]+-)?ld|collect2)[^/\]*( |$)]
+  ignore line: [Change Dir: D:/Java/Projects/lsfTB/app/.cxx/Debug/72g6us6y/arm64-v8a/CMakeFiles/CMakeTmp]
+  ignore line: []
+  ignore line: [Run Build Command(s):D:\Java\Android-SDK\cmake\3.22.1\bin\ninja.exe cmTC_2fd22 && [1/2] Building C object CMakeFiles/cmTC_2fd22.dir/CMakeCCompilerABI.c.o]
+  ignore line: [Android (14475230  based on r574158) clang version 21.0.0 (https://android.googlesource.com/toolchain/llvm-project 9f872551d3c681d06fd303b36f16ed5c274735eb)]
+  ignore line: [Target: aarch64-none-linux-android31]
+  ignore line: [Thread model: posix]
+  ignore line: [InstalledDir: D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/bin]
+  ignore line: [ (in-process)]
+  ignore line: [ "D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/bin/clang.exe" -cc1 -triple aarch64-none-linux-android31 -emit-obj -disable-free -clear-ast-before-backend -disable-llvm-verifier -discard-value-names -main-file-name CMakeCCompilerABI.c -mrelocation-model pic -pic-level 2 -pic-is-pie -mframe-pointer=none -ffp-contract=on -fno-rounding-math -mconstructor-aliases -funwind-tables=2 -enable-tlsdesc -target-cpu generic -target-feature +v8a -target-feature +fp-armv8 -target-feature +neon -target-feature +fix-cortex-a53-835769 -target-abi aapcs -debug-info-kind=constructor -dwarf-version=4 -debugger-tuning=gdb -fdebug-compilation-dir=D:/Java/Projects/lsfTB/app/.cxx/Debug/72g6us6y/arm64-v8a/CMakeFiles/CMakeTmp -v -ffunction-sections -fdata-sections -fcoverage-compilation-dir=D:/Java/Projects/lsfTB/app/.cxx/Debug/72g6us6y/arm64-v8a/CMakeFiles/CMakeTmp -resource-dir D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21 -dependency-file "CMakeFiles\\cmTC_2fd22.dir\\CMakeCCompilerABI.c.o.d" -MT CMakeFiles/cmTC_2fd22.dir/CMakeCCompilerABI.c.o -sys-header-deps -D ANDROID -D _FORTIFY_SOURCE=2 -D __FILE__=__FILE_NAME__ -isysroot D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot -internal-isystem D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/include -internal-isystem D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/local/include -internal-externc-isystem D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include/aarch64-linux-android -internal-externc-isystem D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/include -internal-externc-isystem D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include -Wformat -Wall -Wno-builtin-macro-redefined -Wno-unused-value -std=c2x -ferror-limit 19 -fvisibility=hidden -fvisibility-inlines-hidden -fno-signed-char -fgnuc-version=4.2.1 -fskip-odr-check-in-gmf -target-feature +outline-atomics -D__GCC_HAVE_DWARF2_CFI_ASM=1 -o CMakeFiles/cmTC_2fd22.dir/CMakeCCompilerABI.c.o -x c D:/Java/Android-SDK/cmake/3.22.1/share/cmake-3.22/Modules/CMakeCCompilerABI.c]
+  ignore line: [clang -cc1 version 21.0.0 based upon LLVM 21.0.0 default target x86_64-w64-windows-gnu]
+  ignore line: [ignoring nonexistent directory "D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/local/include"]
+  ignore line: [ignoring nonexistent directory "D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/include"]
+  ignore line: [#include "..." search starts here:]
+  ignore line: [#include <...> search starts here:]
+  ignore line: [ D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/include]
+  ignore line: [ D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include/aarch64-linux-android]
+  ignore line: [ D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include]
+  ignore line: [End of search list.]
+  ignore line: [[2/2] Linking C executable cmTC_2fd22]
+  ignore line: [Android (14475230  based on r574158) clang version 21.0.0 (https://android.googlesource.com/toolchain/llvm-project 9f872551d3c681d06fd303b36f16ed5c274735eb)]
+  ignore line: [Target: aarch64-none-linux-android31]
+  ignore line: [Thread model: posix]
+  ignore line: [InstalledDir: D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/bin]
+  link line: [ "D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/bin/ld.lld" --sysroot=D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot -EL --fix-cortex-a53-843419 -z now -z relro -z max-page-size=16384 --use-android-relr-tags --pack-dyn-relocs=relr --hash-style=gnu --eh-frame-hdr -m aarch64linux -pie -dynamic-linker /system/bin/linker64 -o cmTC_2fd22 D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/31/crtbegin_dynamic.o -LD:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/lib/linux/aarch64 -LD:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/31 -LD:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android -LD:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib --build-id=sha1 --no-undefined-version --fatal-warnings --no-undefined CMakeFiles/cmTC_2fd22.dir/CMakeCCompilerABI.c.o D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/lib/linux/libclang_rt.builtins-aarch64-android.a -l:libunwind.a -ldl -lc D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/lib/linux/libclang_rt.builtins-aarch64-android.a -l:libunwind.a -ldl D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/31/crtend_android.o]
+    arg [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/bin/ld.lld] ==> ignore
+    arg [--sysroot=D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot] ==> ignore
+    arg [-EL] ==> ignore
+    arg [--fix-cortex-a53-843419] ==> ignore
+    arg [-znow] ==> ignore
+    arg [-zrelro] ==> ignore
+    arg [-zmax-page-size=16384] ==> ignore
+    arg [--use-android-relr-tags] ==> ignore
+    arg [--pack-dyn-relocs=relr] ==> ignore
+    arg [--hash-style=gnu] ==> ignore
+    arg [--eh-frame-hdr] ==> ignore
+    arg [-m] ==> ignore
+    arg [aarch64linux] ==> ignore
+    arg [-pie] ==> ignore
+    arg [-dynamic-linker] ==> ignore
+    arg [/system/bin/linker64] ==> ignore
+    arg [-o] ==> ignore
+    arg [cmTC_2fd22] ==> ignore
+    arg [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/31/crtbegin_dynamic.o] ==> obj [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/31/crtbegin_dynamic.o]
+    arg [-LD:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/lib/linux/aarch64] ==> dir [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/lib/linux/aarch64]
+    arg [-LD:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/31] ==> dir [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/31]
+    arg [-LD:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android] ==> dir [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android]
+    arg [-LD:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib] ==> dir [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib]
+    arg [--build-id=sha1] ==> ignore
+    arg [--no-undefined-version] ==> ignore
+    arg [--fatal-warnings] ==> ignore
+    arg [--no-undefined] ==> ignore
+    arg [CMakeFiles/cmTC_2fd22.dir/CMakeCCompilerABI.c.o] ==> ignore
+    arg [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/lib/linux/libclang_rt.builtins-aarch64-android.a] ==> lib [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/lib/linux/libclang_rt.builtins-aarch64-android.a]
+    arg [-l:libunwind.a] ==> lib [-l:libunwind.a]
+    arg [-ldl] ==> lib [dl]
+    arg [-lc] ==> lib [c]
+    arg [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/lib/linux/libclang_rt.builtins-aarch64-android.a] ==> lib [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/lib/linux/libclang_rt.builtins-aarch64-android.a]
+    arg [-l:libunwind.a] ==> lib [-l:libunwind.a]
+    arg [-ldl] ==> lib [dl]
+    arg [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/31/crtend_android.o] ==> obj [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/31/crtend_android.o]
+  remove lib [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/lib/linux/libclang_rt.builtins-aarch64-android.a]
+  remove lib [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/lib/linux/libclang_rt.builtins-aarch64-android.a]
+  collapse library dir [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/lib/linux/aarch64] ==> [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/lib/linux/aarch64]
+  collapse library dir [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/31] ==> [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/31]
+  collapse library dir [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android] ==> [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android]
+  collapse library dir [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib] ==> [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib]
+  implicit libs: [-l:libunwind.a;dl;c;-l:libunwind.a;dl]
+  implicit objs: [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/31/crtbegin_dynamic.o;D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/31/crtend_android.o]
+  implicit dirs: [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/lib/linux/aarch64;D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/31;D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android;D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib]
+  implicit fwks: []
+
+
+Detecting CXX compiler ABI info compiled with the following output:
+Change Dir: D:/Java/Projects/lsfTB/app/.cxx/Debug/72g6us6y/arm64-v8a/CMakeFiles/CMakeTmp
+
+Run Build Command(s):D:\Java\Android-SDK\cmake\3.22.1\bin\ninja.exe cmTC_ce3fc && [1/2] Building CXX object CMakeFiles/cmTC_ce3fc.dir/CMakeCXXCompilerABI.cpp.o
+Android (14475230, based on r574158) clang version 21.0.0 (https://android.googlesource.com/toolchain/llvm-project 9f872551d3c681d06fd303b36f16ed5c274735eb)
+Target: aarch64-none-linux-android31
+Thread model: posix
+InstalledDir: D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/bin
+ (in-process)
+ "D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/bin/clang++.exe" -cc1 -triple aarch64-none-linux-android31 -emit-obj -disable-free -clear-ast-before-backend -disable-llvm-verifier -discard-value-names -main-file-name CMakeCXXCompilerABI.cpp -mrelocation-model pic -pic-level 2 -pic-is-pie -mframe-pointer=none -ffp-contract=on -fno-rounding-math -mconstructor-aliases -funwind-tables=2 -enable-tlsdesc -target-cpu generic -target-feature +v8a -target-feature +fp-armv8 -target-feature +neon -target-feature +fix-cortex-a53-835769 -target-abi aapcs -debug-info-kind=constructor -dwarf-version=4 -debugger-tuning=gdb -fdebug-compilation-dir=D:/Java/Projects/lsfTB/app/.cxx/Debug/72g6us6y/arm64-v8a/CMakeFiles/CMakeTmp -v -ffunction-sections -fdata-sections -fcoverage-compilation-dir=D:/Java/Projects/lsfTB/app/.cxx/Debug/72g6us6y/arm64-v8a/CMakeFiles/CMakeTmp -nostdinc++ -resource-dir D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21 -dependency-file "CMakeFiles\\cmTC_ce3fc.dir\\CMakeCXXCompilerABI.cpp.o.d" -MT CMakeFiles/cmTC_ce3fc.dir/CMakeCXXCompilerABI.cpp.o -sys-header-deps -D ANDROID -D _FORTIFY_SOURCE=2 -D __FILE__=__FILE_NAME__ -isysroot D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot -internal-isystem D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/include -internal-isystem D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/local/include -internal-externc-isystem D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include/aarch64-linux-android -internal-externc-isystem D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/include -internal-externc-isystem D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include -Wformat -Wall -Wno-builtin-macro-redefined -Wno-unused-value -std=c++2b -fdeprecated-macro -ferror-limit 19 -fvisibility=hidden -fvisibility-inlines-hidden -fno-rtti -fno-signed-char -fgnuc-version=4.2.1 -fno-implicit-modules -fskip-odr-check-in-gmf -target-feature +outline-atomics -D__GCC_HAVE_DWARF2_CFI_ASM=1 -o CMakeFiles/cmTC_ce3fc.dir/CMakeCXXCompilerABI.cpp.o -x c++ D:/Java/Android-SDK/cmake/3.22.1/share/cmake-3.22/Modules/CMakeCXXCompilerABI.cpp
+clang -cc1 version 21.0.0 based upon LLVM 21.0.0 default target x86_64-w64-windows-gnu
+ignoring nonexistent directory "D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/local/include"
+ignoring nonexistent directory "D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/include"
+#include "..." search starts here:
+#include <...> search starts here:
+ D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/include
+ D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include/aarch64-linux-android
+ D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include
+End of search list.
+[2/2] Linking CXX executable cmTC_ce3fc
+Android (14475230, based on r574158) clang version 21.0.0 (https://android.googlesource.com/toolchain/llvm-project 9f872551d3c681d06fd303b36f16ed5c274735eb)
+Target: aarch64-none-linux-android31
+Thread model: posix
+InstalledDir: D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/bin
+ "D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/bin/ld.lld" --sysroot=D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot -EL --fix-cortex-a53-843419 -z now -z relro -z max-page-size=16384 --use-android-relr-tags --pack-dyn-relocs=relr --hash-style=gnu --eh-frame-hdr -m aarch64linux -pie -dynamic-linker /system/bin/linker64 -o cmTC_ce3fc D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/31/crtbegin_dynamic.o -LD:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/lib/linux/aarch64 -LD:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/31 -LD:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android -LD:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib --build-id=sha1 --no-undefined-version --fatal-warnings --no-undefined CMakeFiles/cmTC_ce3fc.dir/CMakeCXXCompilerABI.cpp.o -lm D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/lib/linux/libclang_rt.builtins-aarch64-android.a -l:libunwind.a -ldl -lc D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/lib/linux/libclang_rt.builtins-aarch64-android.a -l:libunwind.a -ldl D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/31/crtend_android.o
+
+
+
+Parsed CXX implicit include dir info from above output: rv=done
+  found start of include info
+  found start of implicit include info
+    add: [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/include]
+    add: [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include/aarch64-linux-android]
+    add: [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include]
+  end of search list found
+  collapse include dir [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/include] ==> [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/include]
+  collapse include dir [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include/aarch64-linux-android] ==> [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include/aarch64-linux-android]
+  collapse include dir [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include] ==> [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include]
+  implicit include dirs: [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/include;D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include/aarch64-linux-android;D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include]
+
+
+Parsed CXX implicit link information from above output:
+  link line regex: [^( *|.*[/\])(ld\.lld\.exe|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\]+-)?ld|collect2)[^/\]*( |$)]
+  ignore line: [Change Dir: D:/Java/Projects/lsfTB/app/.cxx/Debug/72g6us6y/arm64-v8a/CMakeFiles/CMakeTmp]
+  ignore line: []
+  ignore line: [Run Build Command(s):D:\Java\Android-SDK\cmake\3.22.1\bin\ninja.exe cmTC_ce3fc && [1/2] Building CXX object CMakeFiles/cmTC_ce3fc.dir/CMakeCXXCompilerABI.cpp.o]
+  ignore line: [Android (14475230  based on r574158) clang version 21.0.0 (https://android.googlesource.com/toolchain/llvm-project 9f872551d3c681d06fd303b36f16ed5c274735eb)]
+  ignore line: [Target: aarch64-none-linux-android31]
+  ignore line: [Thread model: posix]
+  ignore line: [InstalledDir: D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/bin]
+  ignore line: [ (in-process)]
+  ignore line: [ "D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/bin/clang++.exe" -cc1 -triple aarch64-none-linux-android31 -emit-obj -disable-free -clear-ast-before-backend -disable-llvm-verifier -discard-value-names -main-file-name CMakeCXXCompilerABI.cpp -mrelocation-model pic -pic-level 2 -pic-is-pie -mframe-pointer=none -ffp-contract=on -fno-rounding-math -mconstructor-aliases -funwind-tables=2 -enable-tlsdesc -target-cpu generic -target-feature +v8a -target-feature +fp-armv8 -target-feature +neon -target-feature +fix-cortex-a53-835769 -target-abi aapcs -debug-info-kind=constructor -dwarf-version=4 -debugger-tuning=gdb -fdebug-compilation-dir=D:/Java/Projects/lsfTB/app/.cxx/Debug/72g6us6y/arm64-v8a/CMakeFiles/CMakeTmp -v -ffunction-sections -fdata-sections -fcoverage-compilation-dir=D:/Java/Projects/lsfTB/app/.cxx/Debug/72g6us6y/arm64-v8a/CMakeFiles/CMakeTmp -nostdinc++ -resource-dir D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21 -dependency-file "CMakeFiles\\cmTC_ce3fc.dir\\CMakeCXXCompilerABI.cpp.o.d" -MT CMakeFiles/cmTC_ce3fc.dir/CMakeCXXCompilerABI.cpp.o -sys-header-deps -D ANDROID -D _FORTIFY_SOURCE=2 -D __FILE__=__FILE_NAME__ -isysroot D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot -internal-isystem D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/include -internal-isystem D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/local/include -internal-externc-isystem D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include/aarch64-linux-android -internal-externc-isystem D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/include -internal-externc-isystem D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include -Wformat -Wall -Wno-builtin-macro-redefined -Wno-unused-value -std=c++2b -fdeprecated-macro -ferror-limit 19 -fvisibility=hidden -fvisibility-inlines-hidden -fno-rtti -fno-signed-char -fgnuc-version=4.2.1 -fno-implicit-modules -fskip-odr-check-in-gmf -target-feature +outline-atomics -D__GCC_HAVE_DWARF2_CFI_ASM=1 -o CMakeFiles/cmTC_ce3fc.dir/CMakeCXXCompilerABI.cpp.o -x c++ D:/Java/Android-SDK/cmake/3.22.1/share/cmake-3.22/Modules/CMakeCXXCompilerABI.cpp]
+  ignore line: [clang -cc1 version 21.0.0 based upon LLVM 21.0.0 default target x86_64-w64-windows-gnu]
+  ignore line: [ignoring nonexistent directory "D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/local/include"]
+  ignore line: [ignoring nonexistent directory "D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/include"]
+  ignore line: [#include "..." search starts here:]
+  ignore line: [#include <...> search starts here:]
+  ignore line: [ D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/include]
+  ignore line: [ D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include/aarch64-linux-android]
+  ignore line: [ D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include]
+  ignore line: [End of search list.]
+  ignore line: [[2/2] Linking CXX executable cmTC_ce3fc]
+  ignore line: [Android (14475230  based on r574158) clang version 21.0.0 (https://android.googlesource.com/toolchain/llvm-project 9f872551d3c681d06fd303b36f16ed5c274735eb)]
+  ignore line: [Target: aarch64-none-linux-android31]
+  ignore line: [Thread model: posix]
+  ignore line: [InstalledDir: D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/bin]
+  link line: [ "D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/bin/ld.lld" --sysroot=D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot -EL --fix-cortex-a53-843419 -z now -z relro -z max-page-size=16384 --use-android-relr-tags --pack-dyn-relocs=relr --hash-style=gnu --eh-frame-hdr -m aarch64linux -pie -dynamic-linker /system/bin/linker64 -o cmTC_ce3fc D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/31/crtbegin_dynamic.o -LD:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/lib/linux/aarch64 -LD:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/31 -LD:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android -LD:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib --build-id=sha1 --no-undefined-version --fatal-warnings --no-undefined CMakeFiles/cmTC_ce3fc.dir/CMakeCXXCompilerABI.cpp.o -lm D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/lib/linux/libclang_rt.builtins-aarch64-android.a -l:libunwind.a -ldl -lc D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/lib/linux/libclang_rt.builtins-aarch64-android.a -l:libunwind.a -ldl D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/31/crtend_android.o]
+    arg [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/bin/ld.lld] ==> ignore
+    arg [--sysroot=D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot] ==> ignore
+    arg [-EL] ==> ignore
+    arg [--fix-cortex-a53-843419] ==> ignore
+    arg [-znow] ==> ignore
+    arg [-zrelro] ==> ignore
+    arg [-zmax-page-size=16384] ==> ignore
+    arg [--use-android-relr-tags] ==> ignore
+    arg [--pack-dyn-relocs=relr] ==> ignore
+    arg [--hash-style=gnu] ==> ignore
+    arg [--eh-frame-hdr] ==> ignore
+    arg [-m] ==> ignore
+    arg [aarch64linux] ==> ignore
+    arg [-pie] ==> ignore
+    arg [-dynamic-linker] ==> ignore
+    arg [/system/bin/linker64] ==> ignore
+    arg [-o] ==> ignore
+    arg [cmTC_ce3fc] ==> ignore
+    arg [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/31/crtbegin_dynamic.o] ==> obj [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/31/crtbegin_dynamic.o]
+    arg [-LD:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/lib/linux/aarch64] ==> dir [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/lib/linux/aarch64]
+    arg [-LD:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/31] ==> dir [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/31]
+    arg [-LD:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android] ==> dir [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android]
+    arg [-LD:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib] ==> dir [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib]
+    arg [--build-id=sha1] ==> ignore
+    arg [--no-undefined-version] ==> ignore
+    arg [--fatal-warnings] ==> ignore
+    arg [--no-undefined] ==> ignore
+    arg [CMakeFiles/cmTC_ce3fc.dir/CMakeCXXCompilerABI.cpp.o] ==> ignore
+    arg [-lm] ==> lib [m]
+    arg [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/lib/linux/libclang_rt.builtins-aarch64-android.a] ==> lib [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/lib/linux/libclang_rt.builtins-aarch64-android.a]
+    arg [-l:libunwind.a] ==> lib [-l:libunwind.a]
+    arg [-ldl] ==> lib [dl]
+    arg [-lc] ==> lib [c]
+    arg [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/lib/linux/libclang_rt.builtins-aarch64-android.a] ==> lib [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/lib/linux/libclang_rt.builtins-aarch64-android.a]
+    arg [-l:libunwind.a] ==> lib [-l:libunwind.a]
+    arg [-ldl] ==> lib [dl]
+    arg [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/31/crtend_android.o] ==> obj [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/31/crtend_android.o]
+  remove lib [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/lib/linux/libclang_rt.builtins-aarch64-android.a]
+  remove lib [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/lib/linux/libclang_rt.builtins-aarch64-android.a]
+  collapse library dir [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/lib/linux/aarch64] ==> [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/lib/linux/aarch64]
+  collapse library dir [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/31] ==> [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/31]
+  collapse library dir [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android] ==> [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android]
+  collapse library dir [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib] ==> [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib]
+  implicit libs: [m;-l:libunwind.a;dl;c;-l:libunwind.a;dl]
+  implicit objs: [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/31/crtbegin_dynamic.o;D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/31/crtend_android.o]
+  implicit dirs: [D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/lib/clang/21/lib/linux/aarch64;D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/31;D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android;D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib]
+  implicit fwks: []
+
+

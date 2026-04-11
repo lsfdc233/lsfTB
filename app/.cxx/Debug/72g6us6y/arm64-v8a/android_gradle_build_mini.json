@@ -1,0 +1,33 @@
+{
+  "buildFiles": [
+    "D:\\Java\\Projects\\lsfTB\\app\\src\\main\\cpp\\CMakeLists.txt"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "D:\\Java\\Android-SDK\\cmake\\3.22.1\\bin\\ninja.exe",
+      "-C",
+      "D:\\Java\\Projects\\lsfTB\\app\\.cxx\\Debug\\72g6us6y\\arm64-v8a",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "D:\\Java\\Android-SDK\\cmake\\3.22.1\\bin\\ninja.exe",
+    "-C",
+    "D:\\Java\\Projects\\lsfTB\\app\\.cxx\\Debug\\72g6us6y\\arm64-v8a",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {
+    "adbroot::@6890427a1f51a3e7e1df": {
+      "artifactName": "adbroot",
+      "abi": "arm64-v8a",
+      "output": "D:\\Java\\Projects\\lsfTB\\app\\build\\intermediates\\cxx\\Debug\\72g6us6y\\obj\\arm64-v8a\\libadbroot.so",
+      "runtimeFiles": []
+    },
+    "kernelsu::@6890427a1f51a3e7e1df": {
+      "artifactName": "kernelsu",
+      "abi": "arm64-v8a",
+      "output": "D:\\Java\\Projects\\lsfTB\\app\\build\\intermediates\\cxx\\Debug\\72g6us6y\\obj\\arm64-v8a\\libkernelsu.so",
+      "runtimeFiles": []
+    }
+  }
+}

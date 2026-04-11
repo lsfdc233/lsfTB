@@ -1,0 +1,17 @@
+[
+{
+  "directory": "D:/Java/Projects/lsfTB/app/.cxx/Debug/72g6us6y/arm64-v8a",
+  "command": "D:\\Java\\Android-SDK\\ndk\\30.0.14904198\\toolchains\\llvm\\prebuilt\\windows-x86_64\\bin\\clang++.exe --target=aarch64-none-linux-android31 --sysroot=D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot -Dkernelsu_EXPORTS -ID:/Java/Projects/lsfTB/app/src/main/cpp/. -isystem D:/Java/.gradle/caches/9.4.1/transforms/2f236ca728f23a1fe2e62708852f7d1d/transformed/libcxx-29.0.14206865/prefab/modules/cxx/include -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security -nostdinc++ -Wall -Qunused-arguments -fvisibility=hidden -fvisibility-inlines-hidden -fno-exceptions -fno-stack-protector -fomit-frame-pointer -Wno-builtin-macro-redefined -Wno-unused-value -D__FILE__=__FILE_NAME__ -fno-rtti -std=c++2b -fno-limit-debug-info -Og -fPIC -o CMakeFiles\\kernelsu.dir\\jni.cc.o -c D:\\Java\\Projects\\lsfTB\\app\\src\\main\\cpp\\jni.cc",
+  "file": "D:\\Java\\Projects\\lsfTB\\app\\src\\main\\cpp\\jni.cc"
+},
+{
+  "directory": "D:/Java/Projects/lsfTB/app/.cxx/Debug/72g6us6y/arm64-v8a",
+  "command": "D:\\Java\\Android-SDK\\ndk\\30.0.14904198\\toolchains\\llvm\\prebuilt\\windows-x86_64\\bin\\clang++.exe --target=aarch64-none-linux-android31 --sysroot=D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot -Dkernelsu_EXPORTS -ID:/Java/Projects/lsfTB/app/src/main/cpp/. -isystem D:/Java/.gradle/caches/9.4.1/transforms/2f236ca728f23a1fe2e62708852f7d1d/transformed/libcxx-29.0.14206865/prefab/modules/cxx/include -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security -nostdinc++ -Wall -Qunused-arguments -fvisibility=hidden -fvisibility-inlines-hidden -fno-exceptions -fno-stack-protector -fomit-frame-pointer -Wno-builtin-macro-redefined -Wno-unused-value -D__FILE__=__FILE_NAME__ -fno-rtti -std=c++2b -fno-limit-debug-info -Og -fPIC -o CMakeFiles\\kernelsu.dir\\ksu.cc.o -c D:\\Java\\Projects\\lsfTB\\app\\src\\main\\cpp\\ksu.cc",
+  "file": "D:\\Java\\Projects\\lsfTB\\app\\src\\main\\cpp\\ksu.cc"
+},
+{
+  "directory": "D:/Java/Projects/lsfTB/app/.cxx/Debug/72g6us6y/arm64-v8a",
+  "command": "D:\\Java\\Android-SDK\\ndk\\30.0.14904198\\toolchains\\llvm\\prebuilt\\windows-x86_64\\bin\\clang++.exe --target=aarch64-none-linux-android31 --sysroot=D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot -Dadbroot_EXPORTS -isystem D:/Java/.gradle/caches/9.4.1/transforms/2f236ca728f23a1fe2e62708852f7d1d/transformed/libcxx-29.0.14206865/prefab/modules/cxx/include -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security -nostdinc++ -Wall -Qunused-arguments -fvisibility=hidden -fvisibility-inlines-hidden -fno-exceptions -fno-stack-protector -fomit-frame-pointer -Wno-builtin-macro-redefined -Wno-unused-value -D__FILE__=__FILE_NAME__ -fno-rtti -std=c++2b -fno-limit-debug-info -Og -fPIC -o CMakeFiles\\adbroot.dir\\adbroot.cc.o -c D:\\Java\\Projects\\lsfTB\\app\\src\\main\\cpp\\adbroot.cc",
+  "file": "D:\\Java\\Projects\\lsfTB\\app\\src\\main\\cpp\\adbroot.cc"
+}
+]

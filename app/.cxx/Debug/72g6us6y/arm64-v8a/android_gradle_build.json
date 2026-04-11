@@ -1,0 +1,45 @@
+{
+  "buildFiles": [
+    "D:\\Java\\Projects\\lsfTB\\app\\src\\main\\cpp\\CMakeLists.txt"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "D:\\Java\\Android-SDK\\cmake\\3.22.1\\bin\\ninja.exe",
+      "-C",
+      "D:\\Java\\Projects\\lsfTB\\app\\.cxx\\Debug\\72g6us6y\\arm64-v8a",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "D:\\Java\\Android-SDK\\cmake\\3.22.1\\bin\\ninja.exe",
+    "-C",
+    "D:\\Java\\Projects\\lsfTB\\app\\.cxx\\Debug\\72g6us6y\\arm64-v8a",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {
+    "adbroot::@6890427a1f51a3e7e1df": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "adbroot",
+      "output": "D:\\Java\\Projects\\lsfTB\\app\\build\\intermediates\\cxx\\Debug\\72g6us6y\\obj\\arm64-v8a\\libadbroot.so",
+      "runtimeFiles": []
+    },
+    "kernelsu::@6890427a1f51a3e7e1df": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "kernelsu",
+      "output": "D:\\Java\\Projects\\lsfTB\\app\\build\\intermediates\\cxx\\Debug\\72g6us6y\\obj\\arm64-v8a\\libkernelsu.so",
+      "runtimeFiles": []
+    }
+  },
+  "toolchains": {
+    "toolchain": {
+      "cCompilerExecutable": "D:\\Java\\Android-SDK\\ndk\\30.0.14904198\\toolchains\\llvm\\prebuilt\\windows-x86_64\\bin\\clang.exe",
+      "cppCompilerExecutable": "D:\\Java\\Android-SDK\\ndk\\30.0.14904198\\toolchains\\llvm\\prebuilt\\windows-x86_64\\bin\\clang++.exe"
+    }
+  },
+  "cFileExtensions": [],
+  "cppFileExtensions": [
+    "cc"
+  ]
+}

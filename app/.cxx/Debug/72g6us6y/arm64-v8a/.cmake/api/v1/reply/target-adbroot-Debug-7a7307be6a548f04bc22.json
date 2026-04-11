@@ -1,0 +1,130 @@
+{
+	"artifacts" : 
+	[
+		{
+			"path" : "D:/Java/Projects/lsfTB/app/build/intermediates/cxx/Debug/72g6us6y/obj/arm64-v8a/libadbroot.so"
+		}
+	],
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_library",
+			"target_link_libraries"
+		],
+		"files" : 
+		[
+			"CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 25,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 26,
+				"parent" : 0
+			}
+		]
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "-g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security -nostdinc++ -Wall -Qunused-arguments -fvisibility=hidden -fvisibility-inlines-hidden -fno-exceptions -fno-stack-protector -fomit-frame-pointer -Wno-builtin-macro-redefined -Wno-unused-value -D__FILE__=__FILE_NAME__ -fno-rtti -std=c++2b -fno-limit-debug-info -Og -fPIC"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"define" : "adbroot_EXPORTS"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 1,
+					"isSystem" : true,
+					"path" : "D:/Java/.gradle/caches/9.4.1/transforms/2f236ca728f23a1fe2e62708852f7d1d/transformed/libcxx-29.0.14206865/prefab/modules/cxx/include"
+				}
+			],
+			"language" : "CXX",
+			"sourceIndexes" : 
+			[
+				0
+			],
+			"sysroot" : 
+			{
+				"path" : "D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot"
+			}
+		}
+	],
+	"id" : "adbroot::@6890427a1f51a3e7e1df",
+	"link" : 
+	{
+		"commandFragments" : 
+		[
+			{
+				"fragment" : "-nostdlib++ -Wl,--build-id=sha1 -Wl,--no-undefined-version -Wl,--fatal-warnings -Wl,--no-undefined -Qunused-arguments",
+				"role" : "flags"
+			},
+			{
+				"backtrace" : 1,
+				"fragment" : "D:\\Java\\.gradle\\caches\\9.4.1\\transforms\\2f236ca728f23a1fe2e62708852f7d1d\\transformed\\libcxx-29.0.14206865\\prefab\\modules\\cxx\\libs\\android.arm64-v8a\\libcxx.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "D:\\Java\\Android-SDK\\ndk\\30.0.14904198\\toolchains\\llvm\\prebuilt\\windows-x86_64\\sysroot\\usr\\lib\\aarch64-linux-android\\31\\liblog.so",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "-latomic -lm",
+				"role" : "libraries"
+			}
+		],
+		"language" : "CXX",
+		"sysroot" : 
+		{
+			"path" : "D:/Java/Android-SDK/ndk/30.0.14904198/toolchains/llvm/prebuilt/windows-x86_64/sysroot"
+		}
+	},
+	"name" : "adbroot",
+	"nameOnDisk" : "libadbroot.so",
+	"paths" : 
+	{
+		"build" : ".",
+		"source" : "."
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "adbroot.cc",
+			"sourceGroupIndex" : 0
+		}
+	],
+	"type" : "SHARED_LIBRARY"
+}

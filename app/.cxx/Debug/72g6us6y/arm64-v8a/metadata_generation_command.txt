@@ -1,0 +1,24 @@
+                        -HD:\Java\Projects\lsfTB\app\src\main\cpp
+-DCMAKE_SYSTEM_NAME=Android
+-DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+-DCMAKE_SYSTEM_VERSION=31
+-DANDROID_PLATFORM=android-31
+-DANDROID_ABI=arm64-v8a
+-DCMAKE_ANDROID_ARCH_ABI=arm64-v8a
+-DANDROID_NDK=D:\Java\Android-SDK\ndk\30.0.14904198
+-DCMAKE_ANDROID_NDK=D:\Java\Android-SDK\ndk\30.0.14904198
+-DCMAKE_TOOLCHAIN_FILE=D:\Java\Android-SDK\ndk\30.0.14904198\build\cmake\android.toolchain.cmake
+-DCMAKE_MAKE_PROGRAM=D:\Java\Android-SDK\cmake\3.22.1\bin\ninja.exe
+-DCMAKE_C_FLAGS=-Wall -Qunused-arguments -fvisibility=hidden -fvisibility-inlines-hidden -fno-exceptions -fno-stack-protector -fomit-frame-pointer -Wno-builtin-macro-redefined -Wno-unused-value -D__FILE__=__FILE_NAME__ -std=c2x
+-DCMAKE_CXX_FLAGS=-Wall -Qunused-arguments -fvisibility=hidden -fvisibility-inlines-hidden -fno-exceptions -fno-stack-protector -fomit-frame-pointer -Wno-builtin-macro-redefined -Wno-unused-value -D__FILE__=__FILE_NAME__ -fno-rtti -std=c++2b
+-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=D:\Java\Projects\lsfTB\app\build\intermediates\cxx\Debug\72g6us6y\obj\arm64-v8a
+-DCMAKE_RUNTIME_OUTPUT_DIRECTORY=D:\Java\Projects\lsfTB\app\build\intermediates\cxx\Debug\72g6us6y\obj\arm64-v8a
+-DCMAKE_BUILD_TYPE=Debug
+-DCMAKE_FIND_ROOT_PATH=D:\Java\Projects\lsfTB\app\.cxx\Debug\72g6us6y\prefab\arm64-v8a\prefab
+-BD:\Java\Projects\lsfTB\app\.cxx\Debug\72g6us6y\arm64-v8a
+-GNinja
+-DANDROID_STL=none
+-DCMAKE_CXX_FLAGS_DEBUG=-Og
+-DCMAKE_C_FLAGS_DEBUG=-Og
+                        Build command args: []
+                        Version: 2

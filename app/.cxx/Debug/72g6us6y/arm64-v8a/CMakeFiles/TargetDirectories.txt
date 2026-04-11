@@ -1,0 +1,4 @@
+D:/Java/Projects/lsfTB/app/.cxx/Debug/72g6us6y/arm64-v8a/CMakeFiles/kernelsu.dir
+D:/Java/Projects/lsfTB/app/.cxx/Debug/72g6us6y/arm64-v8a/CMakeFiles/adbroot.dir
+D:/Java/Projects/lsfTB/app/.cxx/Debug/72g6us6y/arm64-v8a/CMakeFiles/edit_cache.dir
+D:/Java/Projects/lsfTB/app/.cxx/Debug/72g6us6y/arm64-v8a/CMakeFiles/rebuild_cache.dir

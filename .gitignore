@@ -1,0 +1,28 @@
+# 签名文件（包含敏感信息）
+sign.properties
+*.jks
+*.keystore
+
+# 构建输出
+build/
+app/build/
+
+# IDE配置
+.idea/
+.vscode/
+*.iml
+.gradle/
+
+# 本地配置
+local.properties
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+
+# Kotlin
+*.class
+*.jar
+*.war
+*.ear
+.kotlin/
