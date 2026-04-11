@@ -25,7 +25,7 @@ suspend fun checkNewVersion(context: Context): LatestVersionInfo {
         // 检查网络是否可用
         if (!isNetworkAvailable(context)) {
             Log.e("UpdateChecker", "网络不可用")
-            return@withContext LatestVersionInfo.Empty
+            return@withContext LatestVersionInfo.error(0, "网络不可用，请检查网络连接")
         }
         Log.d("UpdateChecker", "网络可用")
 
@@ -69,19 +69,18 @@ suspend fun checkNewVersion(context: Context): LatestVersionInfo {
                 
                 // 检查响应是否成功
                 if (!response.isSuccessful) {
-                    if (response.code == 403) {
-                        Log.e("UpdateChecker", "GitHub API 速率限制，请稍后再试")
-                        // 返回当前版本信息，避免显示错误
-                        return@runCatching LatestVersionInfo(
-                            versionCode = BuildConfig.VERSION_CODE,
-                            versionName = BuildConfig.VERSION_NAME,
-                            downloadUrl = "",
-                            changelog = ""
-                        )
-                    } else {
-                        Log.e("UpdateChecker", "HTTP 错误: ${response.code} ${response.message}")
+                    val errorCode = response.code
+                    val errorMessage = when (errorCode) {
+                        403 -> "GitHub API 达到请求限制，请稍后重试"
+                        404 -> "未找到版本信息，请检查仓库地址"
+                        500 -> "GitHub 服务器错误，请稍后重试"
+                        502 -> "GitHub 网关错误，请稍后重试"
+                        503 -> "GitHub 服务不可用，请稍后重试"
+                        else -> "HTTP 错误: $errorCode ${response.message}"
                     }
-                    return@runCatching defaultValue
+                    
+                    Log.e("UpdateChecker", "$errorMessage")
+                    return@runCatching LatestVersionInfo.error(errorCode, errorMessage)
                 }
 
                 // 解析 JSON 响应
@@ -90,7 +89,7 @@ suspend fun checkNewVersion(context: Context): LatestVersionInfo {
                 
                 if (body.isEmpty()) {
                     Log.e("UpdateChecker", "响应体为空")
-                    return@runCatching defaultValue
+                    return@runCatching LatestVersionInfo.error(0, "服务器响应为空")
                 }
                 val json = JSONObject(body)
 
@@ -146,9 +145,19 @@ suspend fun checkNewVersion(context: Context): LatestVersionInfo {
                 result
             }
         }.getOrElse { exception ->
-            // 发生异常时打印错误并返回默认值
-            Log.e("UpdateChecker", "检查更新失败: ${exception.message}", exception)
-            defaultValue
+            // 发生异常时打印错误并返回详细错误信息
+            val errorMessage = exception.message ?: "未知错误"
+            Log.e("UpdateChecker", "检查更新失败: $errorMessage", exception)
+            
+            // 根据异常类型提供更友好的错误信息
+            val friendlyMessage = when {
+                errorMessage.contains("timeout", ignoreCase = true) -> "请求超时，请检查网络连接"
+                errorMessage.contains("Unable to resolve host", ignoreCase = true) -> "无法连接到服务器，请检查网络"
+                errorMessage.contains("connection", ignoreCase = true) -> "网络连接失败，请稍后重试"
+                else -> "检查更新失败: $errorMessage"
+            }
+            
+            LatestVersionInfo.error(0, friendlyMessage)
         }
     }
 }

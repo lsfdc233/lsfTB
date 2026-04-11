@@ -110,9 +110,8 @@ fun AboutScreenMiuix(
             confirmText = "前往下载",
             dismissText = "取消",
             onConfirm = {
-                if (state.latestVersionInfo.downloadUrl.isNotEmpty()) {
-                    actions.onOpenLink(state.latestVersionInfo.downloadUrl)
-                }
+                // 使用内部下载器
+                actions.onStartDownload()
             },
             onDismiss = {
                 actions.onDismissUpdateDialog()
@@ -126,17 +125,20 @@ fun AboutScreenMiuix(
             }
         )
         
-        // "已是最新版本"对话框
+        // “已是最新版本”对话框
         if (state.showUpToDateDialog) {
-            androidx.compose.material3.AlertDialog(
-                onDismissRequest = { actions.onDismissUpToDateDialog() },
-                title = { Text("已是最新版本") },
-                text = { Text("当前版本：${state.versionName}") },
-                confirmButton = {
-                    androidx.compose.material3.TextButton(onClick = { actions.onDismissUpToDateDialog() }) {
-                        Text("确定")
-                    }
-                }
+            ConfirmDialogMiuix(
+                title = "已是最新版本",
+                content = "当前版本：${state.versionName}\n\n您已使用最新版本，无需更新。",
+                confirmText = "确定",
+                dismissText = null, // 不显示取消按钮
+                onConfirm = {
+                    actions.onDismissUpToDateDialog()
+                },
+                onDismiss = {
+                    actions.onDismissUpToDateDialog()
+                },
+                showDialog = remember { mutableStateOf(true) }
             )
         }
         
@@ -148,7 +150,9 @@ fun AboutScreenMiuix(
                     .nestedScroll(scrollBehavior.nestedScrollConnection)
                     .padding(horizontal = 12.dp),
                 contentPadding = innerPadding,
-                overscrollEffect = null,
+                overscrollEffect = null
+                // 性能优化：减少预加载项数，降低内存占用和重组次数
+                // beyondBoundsItemCount = 0  // 默认已经是最优值
             ) {
                 item {
                     Column(

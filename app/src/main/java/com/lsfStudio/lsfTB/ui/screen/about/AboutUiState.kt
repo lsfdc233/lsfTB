@@ -19,6 +19,7 @@ data class AboutScreenActions(
     val onBack: () -> Unit,
     val onOpenLink: (String) -> Unit,
     val onCheckUpdate: () -> Unit,
-    val onDismissUpToDateDialog: () -> Unit, // 关闭"已是最新版本"对话框
-    val onDismissUpdateDialog: () -> Unit, // 关闭"发现新版本"对话框
+    val onDismissUpToDateDialog: () -> Unit, // 关闭“已是最新版本”对话框
+    val onDismissUpdateDialog: () -> Unit, // 关闭“发现新版本”对话框
+    val onStartDownload: () -> Unit, // 开始下载更新
 )

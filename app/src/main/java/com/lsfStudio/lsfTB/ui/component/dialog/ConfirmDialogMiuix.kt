@@ -35,7 +35,7 @@ fun ConfirmDialogMiuix(
     content: String?,
     isMarkdown: Boolean = false,
     confirmText: String = "前往下载",
-    dismissText: String = "取消",
+    dismissText: String? = "取消", // 允许为 null，隐藏取消按钮
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
     showDialog: MutableState<Boolean>
@@ -58,25 +58,27 @@ fun ConfirmDialogMiuix(
                         )
                     }
                     Row(
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        horizontalArrangement = if (dismissText != null) Arrangement.SpaceBetween else Arrangement.End,
                         modifier = Modifier.padding(top = 12.dp)
                     ) {
-                        TextButton(
-                            text = dismissText,
-                            onClick = {
-                                onDismiss()
-                                showDialog.value = false
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
-                        Spacer(Modifier.width(20.dp))
+                        if (dismissText != null) {
+                            TextButton(
+                                text = dismissText,
+                                onClick = {
+                                    onDismiss()
+                                    showDialog.value = false
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+                            Spacer(Modifier.width(20.dp))
+                        }
                         TextButton(
                             text = confirmText,
                             onClick = {
                                 onConfirm()
                                 showDialog.value = false
                             },
-                            modifier = Modifier.weight(1f),
+                            modifier = if (dismissText != null) Modifier.weight(1f) else Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.textButtonColorsPrimary()
                         )
                     }

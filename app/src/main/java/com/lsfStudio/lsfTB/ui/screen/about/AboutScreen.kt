@@ -43,6 +43,7 @@ fun AboutScreen() {
         onCheckUpdate = { viewModel.checkUpdate(context) },
         onDismissUpToDateDialog = { viewModel.dismissUpToDateDialog() },
         onDismissUpdateDialog = { viewModel.clearLatestVersionInfo() },
+        onStartDownload = { viewModel.startDownload(context) },
     )
 
     AboutScreenMiuix(uiState, actions)
