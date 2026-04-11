@@ -7,6 +7,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import org.json.JSONArray
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
@@ -133,12 +134,16 @@ suspend fun checkNewVersion(context: Context): LatestVersionInfo {
                     Log.w("UpdateChecker", "未找到 APK 文件")
                 }
 
+                // 获取当前版本的更新日志
+                val currentVersionChangelog = getCurrentVersionChangelog(client, requestBuilder)
+
                 // 返回版本信息
                 val result = LatestVersionInfo(
                     versionCode = versionCode,
                     versionName = versionName,
                     downloadUrl = downloadUrl,
-                    changelog = changelog
+                    changelog = changelog,
+                    currentVersionChangelog = currentVersionChangelog
                 )
                 
                 Log.d("UpdateChecker", "最终结果: versionCode=$versionCode, versionName=$versionName, hasDownloadUrl=${downloadUrl.isNotEmpty()}")
@@ -199,5 +204,63 @@ private fun parseVersionCode(tag: String): Int {
     } catch (e: Exception) {
         // 解析失败，返回当前版本代码
         BuildConfig.VERSION_CODE
+    }
+}
+
+/**
+ * 获取当前版本的更新日志
+ * 
+ * @param client HTTP 客户端
+ * @param requestBuilder 请求构建器
+ * @return 当前版本的更新日志，如果未找到则返回空字符串
+ */
+private fun getCurrentVersionChangelog(
+    client: OkHttpClient,
+    requestBuilder: Request.Builder
+): String {
+    return try {
+        val currentVersionCode = BuildConfig.VERSION_CODE
+        Log.d("UpdateChecker", "开始获取当前版本 ($currentVersionCode) 的更新日志...")
+        
+        // 获取所有 releases
+        val allReleasesUrl = "https://api.github.com/repos/lsfdc233/lsfTB/releases"
+        val request = requestBuilder.url(allReleasesUrl).build()
+        
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                Log.w("UpdateChecker", "获取所有 releases 失败: ${response.code}")
+                return ""
+            }
+            
+            val body = response.body.string()
+            if (body.isEmpty()) {
+                Log.w("UpdateChecker", "releases 响应体为空")
+                return ""
+            }
+            
+            val releases = JSONArray(body)
+            Log.d("UpdateChecker", "共获取到 ${releases.length()} 个 release")
+            
+            // 遍历所有 releases，找到与当前版本匹配的
+            for (i in 0 until releases.length()) {
+                val release = releases.getJSONObject(i)
+                val tagName = release.optString("tag_name", "")
+                val versionCode = parseVersionCode(tagName)
+                
+                Log.d("UpdateChecker", "检查 release: $tagName -> versionCode: $versionCode")
+                
+                if (versionCode == currentVersionCode) {
+                    val changelog = release.optString("body", "")
+                    Log.d("UpdateChecker", "找到当前版本更新日志，长度: ${changelog.length}")
+                    return changelog
+                }
+            }
+            
+            Log.w("UpdateChecker", "未找到与当前版本匹配的 release")
+            ""
+        }
+    } catch (e: Exception) {
+        Log.e("UpdateChecker", "获取当前版本更新日志失败", e)
+        ""
     }
 }

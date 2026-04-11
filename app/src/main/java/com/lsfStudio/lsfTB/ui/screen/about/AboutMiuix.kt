@@ -127,9 +127,20 @@ fun AboutScreenMiuix(
         
         // “已是最新版本”对话框
         if (state.showUpToDateDialog) {
+            val currentChangelog = state.latestVersionInfo.currentVersionChangelog
+            val content = buildString {
+                append("当前版本：${state.versionName}")
+                append("\n\n您已使用最新版本，无需更新。")
+                
+                if (currentChangelog.isNotEmpty()) {
+                    append("\n\n当前版本更新日志：\n")
+                    append(currentChangelog)
+                }
+            }
+            
             ConfirmDialogMiuix(
                 title = "已是最新版本",
-                content = "当前版本：${state.versionName}\n\n您已使用最新版本，无需更新。",
+                content = content,
                 confirmText = "确定",
                 dismissText = null, // 不显示取消按钮
                 onConfirm = {

@@ -7,11 +7,14 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.ui.Alignment
@@ -49,12 +52,17 @@ fun ConfirmDialogMiuix(
             showDialog.value = false
         },
         content = {
+            val scrollState = rememberScrollState()
+            
             Layout(
                 content = {
                     content?.let {
                         Text(
                             text = it,
-                            modifier = Modifier.padding(bottom = 12.dp)
+                            modifier = Modifier
+                                .padding(bottom = 12.dp)
+                                .heightIn(max = 300.dp) // 限制最大高度
+                                .verticalScroll(scrollState) // 启用垂直滚动
                         )
                     }
                     Row(
