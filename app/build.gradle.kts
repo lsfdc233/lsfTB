@@ -1,5 +1,8 @@
 @file:Suppress("UnstableApiUsage")
 
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.agp.app)
     alias(libs.plugins.compose.compiler)
@@ -121,6 +124,38 @@ android {
         sourceCompatibility = androidSourceCompatibility
         targetCompatibility = androidTargetCompatibility
     }
+    
+    // 配置签名 - 支持 v2+v3+v4
+    val keystorePropertiesFile = rootProject.file("sign.properties")
+    val keystoreProperties = Properties()
+    if (keystorePropertiesFile.exists()) {
+        keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+        
+        signingConfigs {
+            create("release") {
+                // 密钥库文件路径相对于项目根目录
+                storeFile = rootProject.file(keystoreProperties.getProperty("KEYSTORE_FILE", ""))
+                storePassword = keystoreProperties.getProperty("KEYSTORE_PASSWORD", "")
+                keyAlias = keystoreProperties.getProperty("KEY_ALIAS", "")
+                keyPassword = keystoreProperties.getProperty("KEY_PASSWORD", "")
+                
+                // 启用 v2 签名（Android 7.0+）
+                enableV2Signing = true
+                
+                // 启用 v3 签名（Android 9.0+）
+                enableV3Signing = true
+                
+                // 启用 v4 签名（Android 11+，用于流式安装）
+                enableV4Signing = true
+            }
+        }
+        
+        buildTypes {
+            release {
+                signingConfig = signingConfigs.getByName("release")
+            }
+        }
+    }
 }
 
 androidComponents {
@@ -142,6 +177,8 @@ base {
 // - KEYSTORE_PASSWORD: 密钥库密码
 // - KEY_ALIAS: 密钥别名
 // - KEY_PASSWORD: 密钥密码
+//
+// 当前配置已启用 v2+v3+v4 签名
 
 dependencies {
     implementation(libs.androidx.activity.compose)
