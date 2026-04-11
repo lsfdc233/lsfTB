@@ -74,11 +74,10 @@ fun AboutScreenMiuix(
     
     // 对话框状态
     var showUpdateDialog by remember { mutableStateOf(false) }
-    var showUpToDateDialog by remember { mutableStateOf(false) }
     
     // 当检查到新版本时显示对话框
-    androidx.compose.runtime.LaunchedEffect(state.latestVersionInfo, state.isCheckingUpdate) {
-        if (!state.isCheckingUpdate && state.latestVersionInfo.versionCode > 0) {
+    androidx.compose.runtime.LaunchedEffect(state.latestVersionInfo) {
+        if (state.latestVersionInfo.versionCode > 0) {
             showUpdateDialog = true
         }
     }
@@ -114,7 +113,11 @@ fun AboutScreenMiuix(
         // 更新对话框
         if (showUpdateDialog) {
             AlertDialog(
-                onDismissRequest = { showUpdateDialog = false },
+                onDismissRequest = { 
+                    showUpdateDialog = false
+                    // 关闭对话框后清除状态
+                    actions.onCheckUpdate // 这个不会触发，只是占位
+                },
                 title = { Text("发现新版本") },
                 text = {
                     Column {
@@ -138,6 +141,20 @@ fun AboutScreenMiuix(
                 dismissButton = {
                     TextButton(onClick = { showUpdateDialog = false }) {
                         Text("取消")
+                    }
+                }
+            )
+        }
+        
+        // “已是最新版本”对话框
+        if (state.showUpToDateDialog) {
+            AlertDialog(
+                onDismissRequest = { actions.onDismissUpToDateDialog() },
+                title = { Text("已是最新版本") },
+                text = { Text("当前版本：${state.versionName}") },
+                confirmButton = {
+                    TextButton(onClick = { actions.onDismissUpToDateDialog() }) {
+                        Text("确定")
                     }
                 }
             )

@@ -53,16 +53,39 @@ class AboutViewModel : ViewModel() {
     fun checkUpdate(context: Context) {
         viewModelScope.launch {
             // 设置检查中状态
-            _uiState.value = _uiState.value.copy(isCheckingUpdate = true)
+            _uiState.value = _uiState.value.copy(isCheckingUpdate = true, showUpToDateDialog = false)
             
-            // 执行检查更新
-            val latestVersion = checkNewVersion(context)
-            
-            // 更新状态
-            _uiState.value = _uiState.value.copy(
-                isCheckingUpdate = false,
-                latestVersionInfo = latestVersion
-            )
+            try {
+                // 执行检查更新
+                val latestVersion = checkNewVersion(context)
+                
+                // 获取当前版本代码
+                val currentVersionCode = com.lsfStudio.lsfTB.BuildConfig.VERSION_CODE
+                
+                // 比较版本号
+                val hasUpdate = latestVersion.versionCode > currentVersionCode
+                
+                // 更新状态
+                _uiState.value = _uiState.value.copy(
+                    isCheckingUpdate = false,
+                    latestVersionInfo = if (hasUpdate) latestVersion else LatestVersionInfo.Empty,
+                    showUpToDateDialog = !hasUpdate // 如果没有更新，显示“已是最新版本”对话框
+                )
+            } catch (e: Exception) {
+                // 发生异常时重置状态
+                _uiState.value = _uiState.value.copy(
+                    isCheckingUpdate = false,
+                    latestVersionInfo = LatestVersionInfo.Empty,
+                    showUpToDateDialog = false
+                )
+            }
         }
+    }
+    
+    /**
+     * 关闭“已是最新版本”对话框
+     */
+    fun dismissUpToDateDialog() {
+        _uiState.value = _uiState.value.copy(showUpToDateDialog = false)
     }
 }

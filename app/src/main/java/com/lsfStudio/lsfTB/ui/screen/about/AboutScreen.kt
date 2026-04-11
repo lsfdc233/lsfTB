@@ -37,6 +37,7 @@ fun AboutScreen() {
         onBack = dropUnlessResumed { navigator.pop() },
         onOpenLink = uriHandler::openUri,
         onCheckUpdate = { viewModel.checkUpdate(context) },
+        onDismissUpToDateDialog = { viewModel.dismissUpToDateDialog() },
     )
 
     AboutScreenMiuix(uiState, actions)

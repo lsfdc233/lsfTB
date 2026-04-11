@@ -98,6 +98,7 @@ fun checkNewVersion(context: Context): LatestVersionInfo {
  * 从版本标签字符串中解析 versionCode
  * 
  * 支持的格式：
+ * - "v11.45.14" -> 提取所有数字组合（114514）
  * - "v1.0.0_1" -> 1
  * - "1.0.0" -> 从 BuildConfig 获取
  * - 其他格式 -> 0
@@ -107,15 +108,26 @@ fun checkNewVersion(context: Context): LatestVersionInfo {
  */
 private fun parseVersionCode(tag: String): Int {
     return try {
-        // 尝试匹配 "vX.X.X_X" 格式
-        val regex = Regex("v.*?(\\d+)$")
-        val matchResult = regex.find(tag)
-        if (matchResult != null) {
-            matchResult.groupValues[1].toInt()
-        } else {
-            // 如果无法解析，返回当前版本代码
-            BuildConfig.VERSION_CODE
+        // 尝试匹配 "vX.X.X_X" 格式（末尾有下划线和数字）
+        val regexWithSuffix = Regex("v.*?_(\\d+)$")
+        val matchWithSuffix = regexWithSuffix.find(tag)
+        if (matchWithSuffix != null) {
+            return matchWithSuffix.groupValues[1].toInt()
         }
+        
+        // 尝试匹配 "v11.45.14" 格式，提取所有数字并组合
+        val regexSimple = Regex("v(\\d+)\\.(\\d+)\\.(\\d+)")
+        val matchSimple = regexSimple.find(tag)
+        if (matchSimple != null) {
+            val major = matchSimple.groupValues[1].toIntOrNull() ?: 0
+            val minor = matchSimple.groupValues[2].toIntOrNull() ?: 0
+            val patch = matchSimple.groupValues[3].toIntOrNull() ?: 0
+            // 将版本号转换为整数：major * 10000 + minor * 100 + patch
+            return major * 10000 + minor * 100 + patch
+        }
+        
+        // 如果无法解析，返回当前版本代码
+        BuildConfig.VERSION_CODE
     } catch (e: Exception) {
         // 解析失败，返回当前版本代码
         BuildConfig.VERSION_CODE
