@@ -6,7 +6,7 @@
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.0+-7F52FF?logo=kotlin)
 ![Compose](https://img.shields.io/badge/Jetpack%20Compose-1.7+-4285F4?logo=jetpackcompose)
 ![API](https://img.shields.io/badge/API-31+-34A853?logo=android)
-![License](https://img.shields.io/badge/License-MIT-blue)
+![特别鸣谢](https://github.com/tiann/KernelSU)
 
 某初中牲突发奇想基于miuix制作的个人数字中枢
 
@@ -20,12 +20,12 @@ lsfTB 是一个采用最新 Android 技术栈构建的应用程序，具有以�
 
 - 🎨 **HyperOS 风格界面**：基于 Miuix KMP 框架，提供原生的 MIUI 视觉体验
 - 🌓 **多主题支持**：支持浅色、深色、跟随系统以及 Monet 动态取色
-- 🚀 **高(划掉)性能**：传奇史山
+- 💩 **高性能(划掉)**：传奇史山
 
 ## 🙏 特别致谢
 
-- [Miuix KMP](https://github.com/yukonga/Miuix-KMP) - MIUI 风格的 Compose Multiplatform UI 库
 - [KernelSU](https://github.com/tiann/KernelSU) - 令lsfdc突发奇想并提供UI设计思路
+- [Miuix KMP](https://github.com/yukonga/Miuix-KMP) - MIUI 风格的 Compose Multiplatform UI 库
 - [Jetpack Compose](https://developer.android.com/jetpack/compose) - Android 现代 UI 工具包
 - [Backdrop](https://github.com/Kyant0/backdrop) - 模糊效果库
 
@@ -36,24 +36,6 @@ lsfTB 是一个采用最新 Android 技术栈构建的应用程序，具有以�
 - **UI 框架**：Jetpack Compose
 - **UI 组件库**：Miuix KMP
 - **架构**：MVVM + Clean Architecture
-
-### 主要依赖
-- **AndroidX**：
-  - Activity Compose
-  - Compose BOM
-  - Lifecycle Runtime & ViewModel
-  - Navigation3
-- **Miuix KMP**：
-  - miuix-ui
-  - miuix-icons
-  - miuix-navigation3
-  - miuix-preference
-  - miuix-blur
-  - miuix-shapes
-- **其他**：
-  - Kotlin Coroutines
-  - Backdrop（模糊效果）
-  - Material Kolor（颜色处理）
 
 ### 构建工具
 - **Gradle**：9.4.1
