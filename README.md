@@ -6,7 +6,6 @@
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.0+-7F52FF?logo=kotlin)
 ![Compose](https://img.shields.io/badge/Jetpack%20Compose-1.7+-4285F4?logo=jetpackcompose)
 ![API](https://img.shields.io/badge/API-31+-34A853?logo=android)
-![特别鸣谢](https://github.com/tiann/KernelSU)
 
 某初中牲突发奇想基于miuix制作的个人数字中枢
 
