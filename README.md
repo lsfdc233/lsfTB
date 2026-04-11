@@ -39,9 +39,9 @@ lsfTB 是一个采用最新 Android 技术栈构建的应用程序，具有以�
 ### 构建工具
 - **Gradle**：9.4.1
 - **Android Gradle Plugin**：9.1.0
-- **Compile SDK**：37 (Android 15)
+- **Compile SDK**：37 (Android 17)
 - **Min SDK**：31 (Android 12)
-- **Target SDK**：37 (Android 15)
+- **Target SDK**：37 (Android 17)
 - **NDK**：30.0.14904198
 - **Java**：21
 
