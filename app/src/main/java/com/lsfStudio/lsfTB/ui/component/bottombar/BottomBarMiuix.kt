@@ -10,6 +10,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Cottage
 import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Shield
+import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -116,5 +119,7 @@ enum class BottomBarDestination(
     val icon: ImageVector,
 ) {
     Home("主页", Icons.Rounded.Cottage),
+    TwoFA("认证", Icons.Rounded.Shield),
+    Vault("保险箱", Icons.Rounded.Folder),
     Setting("设置", Icons.Rounded.Settings)
 }

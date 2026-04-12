@@ -35,7 +35,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -61,10 +63,13 @@ import com.lsfStudio.lsfTB.ui.navigation3.LocalNavigator
 import com.lsfStudio.lsfTB.ui.navigation3.Navigator
 import com.lsfStudio.lsfTB.ui.navigation3.Route
 import com.lsfStudio.lsfTB.ui.navigation3.rememberNavigator
+import com.lsfStudio.lsfTB.ui.screen.twofa.TwoFAScreen
 import com.lsfStudio.lsfTB.ui.screen.about.AboutScreen
 import com.lsfStudio.lsfTB.ui.screen.colorpalette.ColorPaletteScreen
 import com.lsfStudio.lsfTB.ui.screen.home.HomePager
 import com.lsfStudio.lsfTB.ui.screen.settings.SettingPager
+import com.lsfStudio.lsfTB.ui.screen.vault.VaultScreen
+import com.lsfStudio.lsfTB.ui.screen.vault.ImageViewerScreen
 import com.lsfStudio.lsfTB.ui.theme.lsfTBTheme
 import com.lsfStudio.lsfTB.ui.theme.LocalColorMode
 import com.lsfStudio.lsfTB.ui.theme.LocalEnableBlur
@@ -178,6 +183,40 @@ class MainActivity : ComponentActivity() {
                                 entry<Route.About> { AboutScreen() }
                                 // 调色板/主题设置页面路由
                                 entry<Route.ColorPalette> { ColorPaletteScreen() }
+                                // 2FA 双因素认证页面路由
+                                entry<Route.TwoFA> { TwoFAScreen() }
+                                // 图片查看器路由
+                                entry<Route.ImageViewer> { route ->
+                                    // 将路径列表转换为VaultFile列表
+                                    val allFiles = if (route.allFilePaths.isNotEmpty()) {
+                                        route.allFilePaths.mapIndexed { index, path ->
+                                            com.lsfStudio.lsfTB.data.model.VaultFile(
+                                                id = route.allAddedTimes.getOrNull(index) ?: 0L,
+                                                originalName = route.allFileNames.getOrNull(index) ?: "",
+                                                encryptedName = "",
+                                                filePath = path,
+                                                fileType = com.lsfStudio.lsfTB.data.model.FileType.IMAGE,
+                                                tags = emptyList(),
+                                                addedTime = route.allAddedTimes.getOrNull(index) ?: 0L
+                                            )
+                                        }
+                                    } else {
+                                        null
+                                    }
+                                    
+                                    ImageViewerScreen(
+                                        filePath = route.filePath,
+                                        fileName = route.fileName,
+                                        addedTime = route.addedTime,
+                                        onBack = { navigator.pop() },
+                                        allFiles = allFiles,
+                                        currentIndex = route.currentIndex,
+                                        onFileChanged = { newIndex ->
+                                            // 当文件切换时，更新路由（不推新页面，只是更新当前页面内容）
+                                            // 这里实际上不需要做任何事，因为ImageViewerScreen内部会处理
+                                        }
+                                    )
+                                }
                             }
                         )
                     }
@@ -197,6 +236,15 @@ class MainActivity : ComponentActivity() {
  * 如果未提供，访问时会抛出错误
  */
 val LocalMainPagerState = staticCompositionLocalOf<MainPagerState> { error("LocalMainPagerState not provided") }
+
+/**
+ * 底部导航栏可见性状态的CompositionLocal键
+ * 
+ * 用于控制底部导航栏的显示/隐藏
+ * 第一个值：是否显示底部导航栏
+ * 第二个值：设置可见性的函数
+ */
+val LocalBottomBarVisibility = staticCompositionLocalOf<Pair<Boolean, (Boolean) -> Unit>> { error("LocalBottomBarVisibility not provided") }
 
 /**
  * 主屏幕Composable函数
@@ -225,8 +273,8 @@ fun MainScreen() {
     // 获取浮动底栏模糊效果开关状态
     val enableFloatingBottomBarBlur = LocalEnableFloatingBottomBarBlur.current
     
-    // 创建Pager状态，共2个页面
-    val pagerState = rememberPagerState(pageCount = { 2 })
+    // 创建Pager状态，共4个页面
+    val pagerState = rememberPagerState(pageCount = { 4 })
     // 创建主页Pager状态管理器
     val mainPagerState = rememberMainPagerState(pagerState)
     
@@ -245,10 +293,17 @@ fun MainScreen() {
     LaunchedEffect(mainPagerState.pagerState.currentPage) {
         mainPagerState.syncPage()
     }
+    
+    // 底部导航栏可见性状态
+    var isBottomBarVisible by remember { mutableStateOf(true) }
+    val setBottomBarVisibility: (Boolean) -> Unit = { visible ->
+        isBottomBarVisible = visible
+    }
 
     // 提供MainPagerState给子组件
     CompositionLocalProvider(
-        LocalMainPagerState provides mainPagerState
+        LocalMainPagerState provides mainPagerState,
+        LocalBottomBarVisibility provides Pair(isBottomBarVisible, setBottomBarVisibility)
     ) {
         // 检查内容是否已准备好
         val contentReady = rememberContentReady()
@@ -257,7 +312,7 @@ fun MainScreen() {
         val pagerContent = @Composable { bottomInnerPadding: Dp ->
             // 如果启用了模糊效果，应用模糊背景修饰符
             Box(modifier = if (blurBackdrop != null) Modifier.miuixLayerBackdrop(blurBackdrop) else Modifier) {
-                // 水平分页器，包含主页和设置页
+                // 水平分页器，包含主页、2FA 和设置页
                 HorizontalPager(
                     modifier = Modifier
                         // 如果启用浮动底栏且启用模糊，应用图层背景
@@ -275,24 +330,40 @@ fun MainScreen() {
                         when (page) {
                             // 页面0：主页
                             0 -> HomePager(navController, bottomInnerPadding, isCurrentPage)
-                            // 页面1：设置页
-                            1 -> SettingPager(navController, bottomInnerPadding)
+                            // 页面1：2FA 双因素认证
+                            1 -> TwoFAScreen()
+                            // 页面2：私密保险箱
+                            2 -> VaultScreen()
+                            // 页面3：设置页
+                            3 -> SettingPager(navController, bottomInnerPadding)
                         }
                     }
                 }
             }
         }
 
-        // 定义底部导航栏Composable
+        // 定义底部导航栏Composable - 支持动画隐藏
         val bottomBar = @Composable {
-            Box(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                BottomBar(
-                    blurBackdrop = blurBackdrop,
-                    backdrop = backdrop,
-                    modifier = Modifier.align(Alignment.BottomCenter),
+            androidx.compose.animation.AnimatedVisibility(
+                visible = isBottomBarVisible,
+                enter = androidx.compose.animation.slideInVertically(
+                    initialOffsetY = { it },
+                    animationSpec = androidx.compose.animation.core.tween(durationMillis = 300)
+                ),
+                exit = androidx.compose.animation.slideOutVertically(
+                    targetOffsetY = { it },
+                    animationSpec = androidx.compose.animation.core.tween(durationMillis = 300)
                 )
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    BottomBar(
+                        blurBackdrop = blurBackdrop,
+                        backdrop = backdrop,
+                        modifier = Modifier.align(Alignment.BottomCenter),
+                    )
+                }
             }
         }
 

@@ -23,6 +23,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.util.Log
 import com.lsfStudio.lsfTB.R
 import com.lsfStudio.lsfTB.ui.component.dialog.ConfirmDialogMiuix
 import com.lsfStudio.lsfTB.ui.theme.LocalEnableBlur
@@ -59,6 +61,7 @@ import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 import top.yukonga.miuix.kmp.theme.miuixShape
 import top.yukonga.miuix.kmp.utils.overScrollVertical
+import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
 @Composable
 fun AboutScreenMiuix(
@@ -107,7 +110,8 @@ fun AboutScreenMiuix(
             } else {
                 state.latestVersionInfo.versionName
             },
-            confirmText = "前往下载",
+            isMarkdown = true, // 启用 Markdown 支持
+            confirmText = "立即下载",
             dismissText = "取消",
             onConfirm = {
                 // 使用内部下载器
@@ -117,7 +121,7 @@ fun AboutScreenMiuix(
                 actions.onDismissUpdateDialog()
             },
             showDialog = remember { mutableStateOf(false) }.also { dialogState ->
-                androidx.compose.runtime.LaunchedEffect(state.latestVersionInfo) {
+                LaunchedEffect(state.latestVersionInfo) {
                     if (state.latestVersionInfo.versionCode > 0) {
                         dialogState.value = true
                     }
@@ -128,6 +132,9 @@ fun AboutScreenMiuix(
         // “已是最新版本”对话框
         if (state.showUpToDateDialog) {
             val currentChangelog = state.latestVersionInfo.currentVersionChangelog
+            Log.d("AboutMiuix", "currentChangelog 长度: ${currentChangelog.length}")
+            Log.d("AboutMiuix", "currentChangelog 内容: $currentChangelog")
+            
             val content = buildString {
                 append("当前版本：${state.versionName}")
                 append("\n\n您已使用最新版本，无需更新。")
@@ -135,12 +142,17 @@ fun AboutScreenMiuix(
                 if (currentChangelog.isNotEmpty()) {
                     append("\n\n当前版本更新日志：\n")
                     append(currentChangelog)
+                } else {
+                    Log.w("AboutMiuix", "currentChangelog 为空！")
                 }
             }
+            
+            Log.d("AboutMiuix", "最终 content 长度: ${content.length}")
             
             ConfirmDialogMiuix(
                 title = "已是最新版本",
                 content = content,
+                isMarkdown = true, // 启用 Markdown 支持
                 confirmText = "确定",
                 dismissText = null, // 不显示取消按钮
                 onConfirm = {
@@ -149,7 +161,11 @@ fun AboutScreenMiuix(
                 onDismiss = {
                     actions.onDismissUpToDateDialog()
                 },
-                showDialog = remember { mutableStateOf(true) }
+                showDialog = remember(state.showUpToDateDialog) { mutableStateOf(state.showUpToDateDialog) }.also { dialogState ->
+                    LaunchedEffect(state.showUpToDateDialog) {
+                        dialogState.value = state.showUpToDateDialog
+                    }
+                }
             )
         }
         
@@ -158,6 +174,7 @@ fun AboutScreenMiuix(
                 modifier = Modifier
                     .fillMaxHeight()
                     .overScrollVertical()
+                    .scrollEndHaptic()
                     .nestedScroll(scrollBehavior.nestedScrollConnection)
                     .padding(horizontal = 12.dp),
                 contentPadding = innerPadding,

@@ -21,4 +21,20 @@ sealed interface Route : NavKey, Parcelable {
     @Parcelize
     @Serializable
     data object ColorPalette : Route
+
+    @Parcelize
+    @Serializable
+    data object TwoFA : Route
+    
+    @Parcelize
+    @Serializable
+    data class ImageViewer(
+        val filePath: String,
+        val fileName: String,
+        val addedTime: Long,
+        val allFilePaths: List<String> = emptyList(),
+        val allFileNames: List<String> = emptyList(),
+        val allAddedTimes: List<Long> = emptyList(),
+        val currentIndex: Int = 0
+    ) : Route
 }

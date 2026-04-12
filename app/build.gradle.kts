@@ -214,4 +214,13 @@ dependencies {
     implementation(libs.okhttp)
 
     implementation(libs.material.kolor)
+    
+    // Apache Commons Codec for Base32 decoding
+    implementation("commons-codec:commons-codec:1.16.0")
+    
+    // Coil for image loading
+    implementation("io.coil-kt:coil-compose:2.5.0")
+    
+    // DocumentFile for file operations
+    implementation("androidx.documentfile:documentfile:1.0.1")
 }
