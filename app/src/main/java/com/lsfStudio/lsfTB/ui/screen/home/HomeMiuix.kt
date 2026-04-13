@@ -13,23 +13,32 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.widget.Toast
 import com.lsfStudio.lsfTB.ui.theme.LocalEnableBlur
 import com.lsfStudio.lsfTB.ui.util.BlurredBar
+import com.lsfStudio.lsfTB.ui.util.ShizukuUtil
 import com.lsfStudio.lsfTB.ui.util.rememberBlurBackdrop
+import com.lsfStudio.lsfTB.ui.util.rememberShizukuConnectionState
+import com.lsfStudio.lsfTB.ui.util.HapticFeedbackUtil
 import top.yukonga.miuix.kmp.basic.BasicComponent
+import top.yukonga.miuix.kmp.basic.Button
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
@@ -38,6 +47,7 @@ import top.yukonga.miuix.kmp.basic.ScrollBehavior
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.blur.layerBackdrop
+import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
@@ -49,11 +59,15 @@ fun HomePagerMiuix(
     actions: HomeActions,
     bottomInnerPadding: Dp,
 ) {
+    val context = LocalContext.current
     val scrollBehavior = MiuixScrollBehavior()
     val enableBlur = LocalEnableBlur.current
     val backdrop = rememberBlurBackdrop(enableBlur)
     val blurActive = backdrop != null
     val barColor = if (blurActive) Color.Transparent else colorScheme.surface
+    
+    // Shizuku 连接状态
+    val isShizukuConnected = rememberShizukuConnectionState()
 
     Scaffold(
         topBar = {
@@ -78,27 +92,61 @@ fun HomePagerMiuix(
             item {
                 Spacer(Modifier.height(12.dp))
                 
-                // 欢迎卡片
+                // Shizuku 连接状态卡片
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     insideMargin = PaddingValues(16.dp)
                 ) {
-                    Column(
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "欢迎使用 ${state.appName}",
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = colorScheme.onBackground
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            text = "版本 ${state.appVersion}",
-                            fontSize = 14.sp,
-                            color = colorScheme.onSurfaceVariantSummary
-                        )
+                        // 左侧：图标 + 文字
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                imageVector = if (isShizukuConnected.value) Icons.Rounded.CheckCircle else Icons.Rounded.Info,
+                                contentDescription = if (isShizukuConnected.value) "已连接" else "未连接",
+                                modifier = Modifier.size(40.dp),
+                                tint = if (isShizukuConnected.value) colorScheme.primary else colorScheme.onSurfaceVariantSummary
+                            )
+                            Spacer(Modifier.padding(horizontal = 12.dp))
+                            Text(
+                                text = if (isShizukuConnected.value) "Shizuku 已连接" else "未连接到 Shizuku",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = colorScheme.onBackground
+                            )
+                        }
+                        
+                        // 右侧：连接/刷新按钮
+                        Button(
+                            onClick = {
+                                HapticFeedbackUtil.lightClick(context)
+                                if (isShizukuConnected.value) {
+                                    // 已连接，点击刷新状态
+                                    isShizukuConnected.value = ShizukuUtil.isConnected()
+                                    Toast.makeText(context, "状态已刷新", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    // 未连接，请求权限
+                                    if (!ShizukuUtil.isShizukuAvailable()) {
+                                        Toast.makeText(context, "Shizuku 服务未启动，请先启动 Shizuku", Toast.LENGTH_LONG).show()
+                                    } else {
+                                        ShizukuUtil.requestShizukuPermission()
+                                    }
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColorsPrimary(),
+                            modifier = Modifier.padding(start = 12.dp)
+                        ) {
+                            Text(
+                                text = if (isShizukuConnected.value) "刷新" else "连接",
+                                fontSize = 16.sp
+                            )
+                        }
                     }
                 }
                 

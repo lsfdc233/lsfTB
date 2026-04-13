@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
     <cache-path name="cache" path="." />
+    <cache-path name="share_temp" path="share_temp/" />
     <external-cache-path name="external_cache" path="." />
+    <files-path name="files" path="." />
+    <files-path name="vault" path="vault/" />
 </paths>

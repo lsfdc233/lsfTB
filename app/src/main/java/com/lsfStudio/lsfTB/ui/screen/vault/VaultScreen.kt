@@ -15,23 +15,36 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.AddCircle
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Label
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.SelectAll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -46,10 +59,11 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 import top.yukonga.miuix.kmp.window.WindowDialog
-import androidx.compose.ui.input.nestedscroll.nestedScroll
+import com.lsfStudio.lsfTB.ui.LocalBottomBarVisibility
 import com.lsfStudio.lsfTB.data.model.VaultFile
 import com.lsfStudio.lsfTB.data.model.FileType
 import com.lsfStudio.lsfTB.ui.util.HapticFeedbackUtil
+import com.lsfStudio.lsfTB.ui.util.ShareUtil
 import java.io.File
 
 /**
@@ -64,6 +78,20 @@ fun VaultScreen() {
     
     // 文件列表状态
     var vaultFiles by remember { mutableStateOf<List<VaultFile>>(loadVaultFiles(context)) }
+    var refreshKey by remember { mutableStateOf(0) }
+    
+    // 监听ImageViewer的重命名结果
+    vaultFiles.forEach { file ->
+        val requestKey = "image_viewer_rename_${file.id}"
+        LaunchedEffect(requestKey) {
+            navigator.observeResult<Unit>(requestKey).collect {
+                // 重命名后重新加载文件列表
+                vaultFiles = loadVaultFiles(context)
+                saveVaultFiles(context, vaultFiles)
+                navigator.clearResult(requestKey)
+            }
+        }
+    }
     
     // 多选模式状态
     var isMultiSelectMode by remember { mutableStateOf(false) }
@@ -72,9 +100,16 @@ fun VaultScreen() {
     // 对话框状态
     var showTagDialog by remember { mutableStateOf(false) }
     var showExportDialog by remember { mutableStateOf(false) }
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
+    var showRenameDialog by remember { mutableStateOf(false) }
+    var showPreviewDialog by remember { mutableStateOf(false) }
     var fileToTag by remember { mutableStateOf<VaultFile?>(null) }
     var filesToExport by remember { mutableStateOf<List<VaultFile>>(emptyList()) }
+    var filesToDelete by remember { mutableStateOf<List<VaultFile>>(emptyList()) }
+    var filesToRename by remember { mutableStateOf<List<VaultFile>>(emptyList()) }
+    var renamePreviewList by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) } // 源文件名 -> 新文件名
     var tagInput by remember { mutableStateOf("") }
+    var renameInput by remember { mutableStateOf("") }
     
     // 权限请求启动器
     val requestPermissionLauncher = rememberLauncherForActivityResult(
@@ -108,9 +143,9 @@ fun VaultScreen() {
         requestPermissions()
     }
     
-    // 文件选择器启动器 - 使用相册选择器
+    // 文件选择器启动器 - 使用相册选择器（支持图片和视频）
     val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickMultipleVisualMedia()
+        contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = Int.MAX_VALUE)
     ) { uris: List<Uri> ->
         if (uris.isNotEmpty()) {
             scope.launch {
@@ -149,64 +184,204 @@ fun VaultScreen() {
         selectedFiles = emptySet()
     }
     
+    // 控制底部导航栏显示/隐藏
+    val (_, setBottomBarVisibility) = LocalBottomBarVisibility.current
+    LaunchedEffect(isMultiSelectMode) {
+        if (isMultiSelectMode) {
+            // 多选模式：隐藏底部导航栏
+            setBottomBarVisibility(false)
+        } else {
+            // 普通模式：显示底部导航栏
+            setBottomBarVisibility(true)
+        }
+    }
+    
+    // 页面退出时恢复底部导航栏显示
+    DisposableEffect(Unit) {
+        onDispose {
+            setBottomBarVisibility(true)
+        }
+    }
+    
     Scaffold(
         topBar = {
-            TopAppBar(
-                color = colorScheme.surface,
-                title = if (isMultiSelectMode) "已选择 ${selectedFiles.size} 项" else "私密保险箱",
-                navigationIcon = {
-                    if (isMultiSelectMode) {
-                        IconButton(onClick = {
-                            isMultiSelectMode = false
-                            selectedFiles = emptySet()
-                        }) {
-                            Text("取消", fontSize = 16.sp)
+            if (isMultiSelectMode) {
+                // 多选模式顶部栏
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(colorScheme.surface)
+                        .statusBarsPadding()
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        // 左侧关闭按钮
+                        IconButton(
+                            onClick = {
+                                HapticFeedbackUtil.lightClick(context)
+                                isMultiSelectMode = false
+                                selectedFiles = emptySet()
+                            }
+                        ) {
+                            Icon(
+                                Icons.Rounded.Close,
+                                "关闭",
+                                tint = colorScheme.onSurface,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                        
+                        // 中间标题
+                        Text(
+                            text = "已选择${selectedFiles.size}项",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = colorScheme.onSurface
+                        )
+                        
+                        // 右侧菜单按钮
+                        IconButton(
+                            onClick = {
+                                HapticFeedbackUtil.lightClick(context)
+                                // TODO: 显示更多选项菜单
+                            }
+                        ) {
+                            Icon(
+                                Icons.Rounded.SelectAll,
+                                "菜单",
+                                tint = colorScheme.onSurface,
+                                modifier = Modifier.size(28.dp)
+                            )
                         }
                     }
-                },
-                actions = {
-                    if (isMultiSelectMode && selectedFiles.isNotEmpty()) {
-                        // 批量打标签
-                        IconButton(onClick = {
-                            filesToExport = vaultFiles.filter { it.id in selectedFiles }
-                            showTagDialog = true
-                        }) {
-                            Icon(Icons.Rounded.Label, "打标签", tint = colorScheme.onSurface)
-                        }
-                        // 批量导出
-                        IconButton(onClick = {
-                            filesToExport = vaultFiles.filter { it.id in selectedFiles }
-                            showExportDialog = true
-                        }) {
-                            Icon(Icons.Rounded.Delete, "导出", tint = colorScheme.onSurface)
-                        }
+                }
+            } else {
+                // 普通模式顶部栏
+                TopAppBar(
+                    color = colorScheme.surface,
+                    title = "私密保险箱",
+                    scrollBehavior = scrollBehavior
+                )
+            }
+        },
+        bottomBar = {
+            if (isMultiSelectMode) {
+                // 多选模式底部操作栏
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(colorScheme.surface)
+                        .padding(
+                            top = 2.dp,
+                            bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+                        )
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // 发送
+                        MultiSelectBottomItem(
+                            icon = Icons.AutoMirrored.Rounded.Send,
+                            label = "发送",
+                            onClick = {
+                                HapticFeedbackUtil.lightClick(context)
+                                // 分享选中的文件
+                                val selectedFileList = vaultFiles.filter { it.id in selectedFiles }
+                                if (selectedFileList.isNotEmpty()) {
+                                    // 获取第一个选中文件的类型
+                                    val firstFile = selectedFileList.first()
+                                    val mimeType = if (firstFile.fileType == FileType.VIDEO) "video/*" else "image/*"
+                                    
+                                    // 分享文件（不带.zip后缀）
+                                    ShareUtil.shareFile(
+                                        context = context,
+                                        filePath = firstFile.filePath,
+                                        mimeType = mimeType,
+                                        originalFileName = firstFile.originalName
+                                    )
+                                }
+                            }
+                        )
+                        
+                        // 重命名
+                        MultiSelectBottomItem(
+                            icon = Icons.Rounded.Edit,
+                            label = "重命名",
+                            onClick = {
+                                HapticFeedbackUtil.lightClick(context)
+                                val selectedFileList = vaultFiles.filter { it.id in selectedFiles }
+                                if (selectedFileList.isNotEmpty()) {
+                                    filesToRename = selectedFileList
+                                    // 如果只选择一个文件，预设文件名
+                                    if (selectedFileList.size == 1) {
+                                        renameInput = selectedFileList.first().originalName
+                                    } else {
+                                        renameInput = "{P}{S}"
+                                    }
+                                    showRenameDialog = true
+                                }
+                            }
+                        )
+                        
+                        // 添加到
+                        MultiSelectBottomItem(
+                            icon = Icons.Rounded.AddCircle,
+                            label = "添加到",
+                            onClick = {
+                                HapticFeedbackUtil.lightClick(context)
+                                // TODO: 添加到功能
+                            }
+                        )
+                        
+                        // 移出
+                        MultiSelectBottomItem(
+                            icon = Icons.Rounded.Delete,
+                            label = "移出",
+                            isDanger = true,
+                            onClick = {
+                                HapticFeedbackUtil.lightClick(context)
+                                // 显示二次确认弹窗
+                                val selectedFileList = vaultFiles.filter { it.id in selectedFiles }
+                                if (selectedFileList.isNotEmpty()) {
+                                    filesToDelete = selectedFileList
+                                    showDeleteConfirmDialog = true
+                                }
+                            }
+                        )
                     }
-                },
-                scrollBehavior = scrollBehavior
-            )
+                }
+            }
         },
         floatingActionButton = {
-            // 蓝色圆形加号按钮
-            FloatingActionButton(
-                modifier = Modifier
-                    .padding(bottom = 80.dp, end = 20.dp)
-                    .clip(CircleShape),
-                shadowElevation = 0.dp,
-                onClick = {
-                    // 震动反馈
-                    HapticFeedbackUtil.lightClick(context)
-                    // 打开系统相册选择器
-                    filePickerLauncher.launch(PickVisualMediaRequest(PickVisualMedia.ImageAndVideo))
-                },
-                content = {
-                    Icon(
-                        Icons.Rounded.Add,
-                        "添加文件",
-                        modifier = Modifier.size(40.dp),
-                        tint = colorScheme.onPrimary
-                    )
-                }
-            )
+            if (!isMultiSelectMode) {
+                // 蓝色圆形加号按钮（仅在非多选模式显示）
+                FloatingActionButton(
+                    modifier = Modifier
+                        .padding(bottom = 80.dp, end = 20.dp)
+                        .clip(CircleShape),
+                    shadowElevation = 0.dp,
+                    onClick = {
+                        // 震动反馈
+                        HapticFeedbackUtil.lightClick(context)
+                        // 打开系统相册选择器
+                        filePickerLauncher.launch(PickVisualMediaRequest(PickVisualMedia.ImageAndVideo))
+                    },
+                    content = {
+                        Icon(
+                            Icons.Rounded.Add,
+                            "添加文件",
+                            modifier = Modifier.size(40.dp),
+                            tint = colorScheme.onPrimary
+                        )
+                    }
+                )
+            }
         }
     ) { innerPadding ->
         // 网格视图（类似 Windows 资源管理器）- 始终可滚动
@@ -254,15 +429,18 @@ fun VaultScreen() {
                                 } else {
                                     // 单击：跳转到图片查看器页面
                                     val currentIndex = vaultFiles.indexOfFirst { it.id == file.id }
-                                    navigator.push(Route.ImageViewer(
-                                        filePath = file.filePath,
-                                        fileName = file.originalName,
-                                        addedTime = file.addedTime,
-                                        allFilePaths = vaultFiles.map { it.filePath },
-                                        allFileNames = vaultFiles.map { it.originalName },
-                                        allAddedTimes = vaultFiles.map { it.addedTime },
-                                        currentIndex = if (currentIndex >= 0) currentIndex else 0
-                                    ))
+                                    navigator.navigateForResult(
+                                        Route.ImageViewer(
+                                            filePath = file.filePath,
+                                            fileName = file.originalName,
+                                            addedTime = file.addedTime,
+                                            allFilePaths = vaultFiles.map { it.filePath },
+                                            allFileNames = vaultFiles.map { it.originalName },
+                                            allAddedTimes = vaultFiles.map { it.addedTime },
+                                            currentIndex = if (currentIndex >= 0) currentIndex else 0
+                                        ),
+                                        "image_viewer_rename_${file.id}"
+                                    )
                                 }
                             },
                             onLongClick = {
@@ -342,6 +520,276 @@ fun VaultScreen() {
                 }
             }
         }
+        
+        // 移出确认对话框
+        if (showDeleteConfirmDialog) {
+            AlertDialog(
+                onDismissRequest = {
+                    showDeleteConfirmDialog = false
+                    filesToDelete = emptyList()
+                },
+                title = { Text("确认移出") },
+                text = { Text("确定要将${filesToDelete.size}个文件移出保险箱吗？\n文件将移动到 /sdcard/Pictures/lsfTB") },
+                confirmButton = {
+                    TextButton(
+                        text = "移出",
+                        onClick = {
+                            HapticFeedbackUtil.lightClick(context)
+                            scope.launch {
+                                // 执行移出操作
+                                moveFilesToPublic(context, filesToDelete)
+                                
+                                // 从列表中删除
+                                vaultFiles = vaultFiles.filter { file ->
+                                    !filesToDelete.any { deleted -> deleted.id == file.id }
+                                }
+                                saveVaultFiles(context, vaultFiles)
+                                
+                                // 强制刷新UI
+                                refreshKey++
+                                
+                                // 退出多选模式
+                                isMultiSelectMode = false
+                                selectedFiles = emptySet()
+                                
+                                // 显示Toast通知
+                                android.widget.Toast.makeText(
+                                    context,
+                                    "已移出到 /sdcard/Pictures/lsfTB",
+                                    android.widget.Toast.LENGTH_LONG
+                                ).show()
+                                
+                                showDeleteConfirmDialog = false
+                                filesToDelete = emptyList()
+                            }
+                        },
+                        colors = ButtonDefaults.textButtonColorsPrimary()
+                    )
+                },
+                dismissButton = {
+                    TextButton(
+                        text = "取消",
+                        onClick = {
+                            HapticFeedbackUtil.lightClick(context)
+                            showDeleteConfirmDialog = false
+                            filesToDelete = emptyList()
+                        }
+                    )
+                }
+            )
+        }
+        
+        // 重命名对话框
+        if (showRenameDialog && filesToRename.isNotEmpty()) {
+            val isSingleFile = filesToRename.size == 1
+            
+            WindowDialog(
+                show = showRenameDialog,
+                title = if (isSingleFile) "重命名" else "批量重命名",
+                onDismissRequest = { 
+                    showRenameDialog = false
+                    renameInput = ""
+                    filesToRename = emptyList()
+                }
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    if (isSingleFile) {
+                        // 单文件重命名
+                        TextField(
+                            value = renameInput,
+                            onValueChange = { renameInput = it },
+                            label = "输入新文件名（含扩展名）",
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    } else {
+                        // 批量重命名
+                        TextField(
+                            value = renameInput,
+                            onValueChange = { renameInput = it },
+                            label = "重命名模板",
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = "{P}: 文件名前缀（如 abc.png 中的 abc）\n{S}: 文件扩展名（如 abc.png 中的 .png）\n{N}: 序号（如 {0}、{1} 从指定数字递增）",
+                            fontSize = 12.sp,
+                            color = Color.Gray
+                        )
+                    }
+                    
+                    Spacer(Modifier.height(16.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.End,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        TextButton(
+                            text = "取消",
+                            onClick = {
+                                HapticFeedbackUtil.lightClick(context)
+                                showRenameDialog = false
+                                renameInput = ""
+                                filesToRename = emptyList()
+                            }
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        TextButton(
+                            text = if (isSingleFile) "确定" else "预览",
+                            onClick = {
+                                HapticFeedbackUtil.lightClick(context)
+                                if (isSingleFile) {
+                                    // 单文件直接重命名
+                                    scope.launch {
+                                        val renamedFile = renameSingleFile(context, filesToRename.first(), renameInput)
+                                        if (renamedFile != null) {
+                                            vaultFiles = vaultFiles.map { 
+                                                if (it.id == renamedFile.id) renamedFile else it 
+                                            }
+                                            saveVaultFiles(context, vaultFiles)
+                                            showRenameDialog = false
+                                            renameInput = ""
+                                            filesToRename = emptyList()
+                                            android.widget.Toast.makeText(
+                                                context,
+                                                "重命名成功",
+                                                android.widget.Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
+                                    }
+                                } else {
+                                    // 批量重命名显示预览
+                                    val previewList = generateRenamePreview(filesToRename, renameInput)
+                                    renamePreviewList = previewList
+                                    showRenameDialog = false
+                                    showPreviewDialog = true
+                                }
+                            },
+                            colors = ButtonDefaults.textButtonColorsPrimary()
+                        )
+                    }
+                }
+            }
+        }
+        
+        // 批量重命名预览对话框
+        if (showPreviewDialog) {
+            AlertDialog(
+                onDismissRequest = {
+                    showPreviewDialog = false
+                    renamePreviewList = emptyList()
+                },
+                title = { Text("预览") },
+                text = {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 400.dp)
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        renamePreviewList.forEach { (oldName, newName) ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = oldName,
+                                    fontSize = 12.sp,
+                                    color = Color.Gray,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Text(
+                                    text = " > ",
+                                    fontSize = 12.sp,
+                                    color = Color.Gray
+                                )
+                                Text(
+                                    text = newName,
+                                    fontSize = 12.sp,
+                                    color = Color(0xFF1E88E5),
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        text = "重命名",
+                        onClick = {
+                            HapticFeedbackUtil.lightClick(context)
+                            scope.launch {
+                                val renamedFiles = executeBatchRename(context, filesToRename, renameInput)
+                                // 更新 vaultFiles 中的对应项
+                                vaultFiles = vaultFiles.map { file ->
+                                    val renamed = renamedFiles.find { it.id == file.id }
+                                    if (renamed != null) renamed else file
+                                }
+                                saveVaultFiles(context, vaultFiles)
+                                showPreviewDialog = false
+                                renamePreviewList = emptyList()
+                                filesToRename = emptyList()
+                                renameInput = ""
+                                android.widget.Toast.makeText(
+                                    context,
+                                    "批量重命名成功",
+                                    android.widget.Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        },
+                        colors = ButtonDefaults.textButtonColorsPrimary()
+                    )
+                },
+                dismissButton = {
+                    TextButton(
+                        text = "取消",
+                        onClick = {
+                            HapticFeedbackUtil.lightClick(context)
+                            showPreviewDialog = false
+                            renamePreviewList = emptyList()
+                        }
+                    )
+                }
+            )
+        }
+    }
+}
+
+/**
+ * 多选模式底部操作项
+ */
+@Composable
+private fun MultiSelectBottomItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    isDanger: Boolean = false
+) {
+    val context = LocalContext.current
+    
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .clickable(
+                onClick = {
+                    HapticFeedbackUtil.lightClick(context)
+                    onClick()
+                }
+            )
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = if (isDanger) Color(0xFFFF4757) else colorScheme.onSurface,
+            modifier = Modifier.size(28.dp)
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            color = if (isDanger) Color(0xFFFF4757) else colorScheme.onSurface
+        )
     }
 }
 
@@ -717,6 +1165,169 @@ fun VideoThumbnail(filePath: String) {
     ) {
         Icon(Icons.Rounded.PlayArrow, null, tint = Color.White.copy(alpha = 0.5f))
     }
+}
+
+/**
+ * 将文件移出到公共目录 /sdcard/Pictures/lsfTB
+ */
+private suspend fun moveFilesToPublic(
+    context: Context,
+    files: List<VaultFile>
+) {
+    // 创建目标目录
+    val targetDir = File("/sdcard/Pictures/lsfTB")
+    if (!targetDir.exists()) {
+        targetDir.mkdirs()
+    }
+    
+    for (file in files) {
+        try {
+            // 恢复原始文件名（去掉 .zip 后缀）
+            val originalFileName = file.originalName
+            
+            // 目标文件路径
+            val targetFile = File(targetDir, originalFileName)
+            
+            // 复制文件内容
+            val sourceFile = File(file.filePath)
+            if (sourceFile.exists()) {
+                sourceFile.copyTo(targetFile, overwrite = true)
+                
+                // 确保复制成功后再删除原文件
+                if (targetFile.exists() && targetFile.length() > 0) {
+                    sourceFile.delete()
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+}
+
+/**
+ * 重命名单个文件
+ */
+private suspend fun renameSingleFile(
+    context: Context,
+    file: VaultFile,
+    newFullName: String
+): VaultFile? {
+    return try {
+        val vaultDir = File(context.filesDir, "vault")
+        val oldFilePath = file.filePath
+        
+        // 新文件名（添加.zip后缀）
+        val newEncryptedName = "$newFullName.zip"
+        val newFilePath = File(vaultDir, newEncryptedName).absolutePath
+        
+        // 重命名文件
+        val oldFile = File(oldFilePath)
+        val newFile = File(newFilePath)
+        if (oldFile.exists()) {
+            oldFile.renameTo(newFile)
+            
+            // 返回新的VaultFile对象
+            file.copy(
+                originalName = newFullName,
+                encryptedName = newEncryptedName,
+                filePath = newFilePath
+            )
+        } else {
+            null
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
+        null
+    }
+}
+
+/**
+ * 生成批量重命名预览列表
+ */
+private fun generateRenamePreview(
+    files: List<VaultFile>,
+    template: String
+): List<Pair<String, String>> {
+    return files.mapIndexed { index, file ->
+        val oldName = file.originalName
+        val newName = applyRenameTemplate(oldName, template, index)
+        oldName to newName
+    }
+}
+
+/**
+ * 应用重命名模板
+ */
+private fun applyRenameTemplate(
+    originalName: String,
+    template: String,
+    index: Int
+): String {
+    var result = template
+    
+    // 分离文件名和扩展名
+    val lastDotIndex = originalName.lastIndexOf('.')
+    val prefix = if (lastDotIndex > 0) originalName.substring(0, lastDotIndex) else originalName
+    val suffix = if (lastDotIndex > 0) originalName.substring(lastDotIndex) else ""
+    
+    // 替换 {P} - 文件名前缀
+    result = result.replace("{P}", prefix)
+    
+    // 替换 {S} - 文件扩展名
+    result = result.replace("{S}", suffix)
+    
+    // 替换 {N} - 序号，支持 {0}, {1}, {2} 等
+    val regex = Regex("\\{(\\d+)\\}")
+    val matchResult = regex.find(result)
+    if (matchResult != null) {
+        val startNum = matchResult.groupValues[1].toInt()
+        val num = startNum + index
+        result = result.replace(matchResult.value, num.toString())
+    }
+    
+    return result
+}
+
+/**
+ * 执行批量重命名
+ */
+private suspend fun executeBatchRename(
+    context: Context,
+    files: List<VaultFile>,
+    template: String
+): List<VaultFile> {
+    val vaultDir = File(context.filesDir, "vault")
+    val renamedFiles = mutableListOf<VaultFile>()
+    
+    for ((index, file) in files.withIndex()) {
+        try {
+            val oldFilePath = file.filePath
+            val newFullName = applyRenameTemplate(file.originalName, template, index)
+            val newEncryptedName = "$newFullName.zip"
+            val newFilePath = File(vaultDir, newEncryptedName).absolutePath
+            
+            // 重命名文件
+            val oldFile = File(oldFilePath)
+            val newFile = File(newFilePath)
+            if (oldFile.exists()) {
+                oldFile.renameTo(newFile)
+                
+                // 创建新的VaultFile对象
+                renamedFiles.add(
+                    file.copy(
+                        originalName = newFullName,
+                        encryptedName = newEncryptedName,
+                        filePath = newFilePath
+                    )
+                )
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            renamedFiles.add(file) // 失败时保留原文件
+        }
+    }
+    
+    return renamedFiles
 }
 
 /**

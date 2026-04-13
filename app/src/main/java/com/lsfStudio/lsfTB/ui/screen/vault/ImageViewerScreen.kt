@@ -12,8 +12,13 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Favorite
@@ -69,11 +74,14 @@ fun ImageViewerScreen(
     onFileChanged: ((Int) -> Unit)? = null
 ) {
     val context = LocalContext.current
+    val navigator = com.lsfStudio.lsfTB.ui.navigation3.LocalNavigator.current
     var scale by remember { mutableStateOf(1f) }
     var offsetX by remember { mutableStateOf(0f) }
     var offsetY by remember { mutableStateOf(0f) }
     var showControls by remember { mutableStateOf(true) }
     var isFavorite by remember { mutableStateOf(false) }
+    var showRenameDialog by remember { mutableStateOf(false) }
+    var renameInput by remember { mutableStateOf("") }
     
     // 当前显示的文件信息（支持切换）
     var actualCurrentIndex by remember { mutableIntStateOf(currentIndex) }
@@ -380,11 +388,14 @@ fun ImageViewerScreen(
                             isDarkTheme = isDarkTheme
                         )
                         
-                        // 编辑
+                        // 重命名
                         BottomActionItem(
                             icon = Icons.Rounded.Edit,
-                            label = "编辑",
-                            onClick = onEdit,
+                            label = "重命名",
+                            onClick = {
+                                renameInput = displayName
+                                showRenameDialog = true
+                            },
                             isDarkTheme = isDarkTheme
                         )
                         
@@ -422,6 +433,58 @@ fun ImageViewerScreen(
                     }
                 }
             }
+        }
+        
+        // 重命名对话框
+        if (showRenameDialog) {
+            AlertDialog(
+                onDismissRequest = {
+                    showRenameDialog = false
+                },
+                title = { Text("重命名") },
+                text = {
+                    TextField(
+                        value = renameInput,
+                        onValueChange = { renameInput = it },
+                        label = "输入新文件名（含扩展名）",
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        text = "确定",
+                        onClick = {
+                            com.lsfStudio.lsfTB.ui.util.HapticFeedbackUtil.lightClick(context)
+                            val success = renameFileInViewer(context, currentFilePath, displayName, renameInput)
+                            if (success) {
+                                android.widget.Toast.makeText(
+                                    context,
+                                    "重命名成功",
+                                    android.widget.Toast.LENGTH_SHORT
+                                ).show()
+                                // 更新当前文件信息
+                                currentFileName = "$renameInput.zip"
+                                currentFilePath = java.io.File(
+                                    context.filesDir, 
+                                    "vault/$renameInput.zip"
+                                ).absolutePath
+                                // 通知VaultScreen刷新
+                                navigator.setResult<Unit>("image_viewer_rename_${currentIndex}", Unit)
+                            }
+                            showRenameDialog = false
+                        }
+                    )
+                },
+                dismissButton = {
+                    TextButton(
+                        text = "取消",
+                        onClick = {
+                            com.lsfStudio.lsfTB.ui.util.HapticFeedbackUtil.lightClick(context)
+                            showRenameDialog = false
+                        }
+                    )
+                }
+            )
         }
     }
 }
@@ -466,5 +529,35 @@ private fun BottomActionItem(
                 else -> Color.Black
             }
         )
+    }
+}
+
+/**
+ * 重命名查看器中的文件
+ */
+private fun renameFileInViewer(
+    context: android.content.Context,
+    oldFilePath: String,
+    oldDisplayName: String,
+    newFullName: String
+): Boolean {
+    return try {
+        val vaultDir = java.io.File(context.filesDir, "vault")
+        
+        // 新文件名（添加.zip后缀）
+        val newEncryptedName = "$newFullName.zip"
+        val newFilePath = java.io.File(vaultDir, newEncryptedName).absolutePath
+        
+        // 重命名文件
+        val oldFile = java.io.File(oldFilePath)
+        val newFile = java.io.File(newFilePath)
+        if (oldFile.exists()) {
+            oldFile.renameTo(newFile)
+        } else {
+            false
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
+        false
     }
 }
