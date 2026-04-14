@@ -10,6 +10,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 
@@ -20,6 +21,7 @@ import androidx.media3.ui.PlayerView
  * @param autoPlay 是否自动播放
  * @param onPlayerReady 播放器准备完成回调
  */
+@OptIn(UnstableApi::class)
 @Composable
 fun VideoPlayer(
     videoUri: Uri,
