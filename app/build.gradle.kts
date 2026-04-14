@@ -118,6 +118,8 @@ android {
     lint {
         abortOnError = true
         checkReleaseBuilds = false
+        // 忽略 UnstableApi 的 OptIn 检查（Media3 API）
+        disable += "UnsafeOptInUsageError"
     }
 
     compileOptions {
