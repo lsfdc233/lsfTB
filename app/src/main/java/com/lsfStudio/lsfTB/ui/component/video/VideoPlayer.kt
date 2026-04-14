@@ -1,3 +1,5 @@
+@file:OptIn(UnstableApi::class)
+
 package com.lsfStudio.lsfTB.ui.component.video
 
 import android.net.Uri
@@ -21,7 +23,6 @@ import androidx.media3.ui.PlayerView
  * @param autoPlay 是否自动播放
  * @param onPlayerReady 播放器准备完成回调
  */
-@OptIn(UnstableApi::class)
 @Composable
 fun VideoPlayer(
     videoUri: Uri,
