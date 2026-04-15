@@ -70,6 +70,7 @@ import com.lsfStudio.lsfTB.ui.screen.home.HomePager
 import com.lsfStudio.lsfTB.ui.screen.settings.SettingPager
 import com.lsfStudio.lsfTB.ui.screen.vault.VaultScreen
 import com.lsfStudio.lsfTB.ui.screen.vault.ImageViewerScreen
+import com.lsfStudio.lsfTB.ui.screen.vault.VideoPlayerScreen
 import com.lsfStudio.lsfTB.ui.theme.lsfTBTheme
 import com.lsfStudio.lsfTB.ui.theme.LocalColorMode
 import com.lsfStudio.lsfTB.ui.theme.LocalEnableBlur
@@ -208,6 +209,7 @@ class MainActivity : ComponentActivity() {
                                         filePath = route.filePath,
                                         fileName = route.fileName,
                                         addedTime = route.addedTime,
+                                        fileId = route.fileId,
                                         onBack = { navigator.pop() },
                                         allFiles = allFiles,
                                         currentIndex = route.currentIndex,
@@ -215,6 +217,34 @@ class MainActivity : ComponentActivity() {
                                             // 当文件切换时，更新路由（不推新页面，只是更新当前页面内容）
                                             // 这里实际上不需要做任何事，因为ImageViewerScreen内部会处理
                                         }
+                                    )
+                                }
+                                // 视频播放器路由
+                                entry<Route.VideoPlayer> { route ->
+                                    // 将路径列表转换为VaultFile列表
+                                    val allFiles = if (route.allFilePaths.isNotEmpty()) {
+                                        route.allFilePaths.mapIndexed { index, path ->
+                                            com.lsfStudio.lsfTB.data.model.VaultFile(
+                                                id = route.allAddedTimes.getOrNull(index) ?: 0L,
+                                                originalName = route.allFileNames.getOrNull(index) ?: "",
+                                                encryptedName = "",
+                                                filePath = path,
+                                                fileType = com.lsfStudio.lsfTB.data.model.FileType.VIDEO,
+                                                tags = emptyList(),
+                                                addedTime = route.allAddedTimes.getOrNull(index) ?: 0L
+                                            )
+                                        }
+                                    } else {
+                                        null
+                                    }
+                                    
+                                    VideoPlayerScreen(
+                                        filePath = route.filePath,
+                                        fileName = route.fileName,
+                                        fileId = route.fileId,
+                                        onBack = { navigator.pop() },
+                                        allFiles = allFiles,
+                                        currentIndex = route.currentIndex
                                     )
                                 }
                             }

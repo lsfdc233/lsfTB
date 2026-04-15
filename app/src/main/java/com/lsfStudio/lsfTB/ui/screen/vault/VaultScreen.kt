@@ -80,15 +80,32 @@ fun VaultScreen() {
     var vaultFiles by remember { mutableStateOf<List<VaultFile>>(loadVaultFiles(context)) }
     var refreshKey by remember { mutableStateOf(0) }
     
-    // 监听ImageViewer的重命名结果
-    vaultFiles.forEach { file ->
-        val requestKey = "image_viewer_rename_${file.id}"
-        LaunchedEffect(requestKey) {
-            navigator.observeResult<Unit>(requestKey).collect {
-                // 重命名后重新加载文件列表
-                vaultFiles = loadVaultFiles(context)
-                saveVaultFiles(context, vaultFiles)
-                navigator.clearResult(requestKey)
+    // 监听ImageViewer的重命名结果（使用refreshKey触发重新订阅）
+    LaunchedEffect(refreshKey) {
+        vaultFiles.forEach { file ->
+            val renameKey = "image_viewer_rename_${file.id}"
+            launch {
+                navigator.observeResult<Unit>(renameKey).collect {
+                    // 重命名后重新加载文件列表
+                    vaultFiles = loadVaultFiles(context)
+                    saveVaultFiles(context, vaultFiles)
+                    navigator.clearResult(renameKey)
+                    // 增加refreshKey以重新订阅
+                    refreshKey++
+                }
+            }
+            
+            // 监听ImageViewer的删除结果
+            val deleteKey = "image_viewer_delete_${file.id}"
+            launch {
+                navigator.observeResult<Long>(deleteKey).collect { deletedFileId ->
+                    // 删除后重新加载文件列表
+                    vaultFiles = loadVaultFiles(context)
+                    saveVaultFiles(context, vaultFiles)
+                    navigator.clearResult(deleteKey)
+                    // 增加refreshKey以重新订阅
+                    refreshKey++
+                }
             }
         }
     }
@@ -427,20 +444,38 @@ fun VaultScreen() {
                                     // 震动反馈
                                     HapticFeedbackUtil.select(context)
                                 } else {
-                                    // 单击：跳转到图片查看器页面
+                                    // 单击：根据文件类型跳转到不同的查看器
                                     val currentIndex = vaultFiles.indexOfFirst { it.id == file.id }
-                                    navigator.navigateForResult(
-                                        Route.ImageViewer(
-                                            filePath = file.filePath,
-                                            fileName = file.originalName,
-                                            addedTime = file.addedTime,
-                                            allFilePaths = vaultFiles.map { it.filePath },
-                                            allFileNames = vaultFiles.map { it.originalName },
-                                            allAddedTimes = vaultFiles.map { it.addedTime },
-                                            currentIndex = if (currentIndex >= 0) currentIndex else 0
-                                        ),
-                                        "image_viewer_rename_${file.id}"
-                                    )
+                                    if (file.fileType == FileType.VIDEO) {
+                                        // 视频：跳转到视频播放器
+                                        navigator.navigateForResult(
+                                            Route.VideoPlayer(
+                                                filePath = file.filePath,
+                                                fileName = file.originalName,
+                                                fileId = file.id,
+                                                allFilePaths = vaultFiles.map { it.filePath },
+                                                allFileNames = vaultFiles.map { it.originalName },
+                                                allAddedTimes = vaultFiles.map { it.addedTime },
+                                                currentIndex = if (currentIndex >= 0) currentIndex else 0
+                                            ),
+                                            "image_viewer_rename_${file.id}"
+                                        )
+                                    } else {
+                                        // 图片：跳转到图片查看器
+                                        navigator.navigateForResult(
+                                            Route.ImageViewer(
+                                                filePath = file.filePath,
+                                                fileName = file.originalName,
+                                                addedTime = file.addedTime,
+                                                fileId = file.id,
+                                                allFilePaths = vaultFiles.map { it.filePath },
+                                                allFileNames = vaultFiles.map { it.originalName },
+                                                allAddedTimes = vaultFiles.map { it.addedTime },
+                                                currentIndex = if (currentIndex >= 0) currentIndex else 0
+                                            ),
+                                            "image_viewer_rename_${file.id}"
+                                        )
+                                    }
                                 }
                             },
                             onLongClick = {

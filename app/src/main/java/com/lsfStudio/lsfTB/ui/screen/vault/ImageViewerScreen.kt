@@ -44,7 +44,9 @@ import androidx.core.view.WindowInsetsControllerCompat
 import coil.compose.AsyncImage
 import com.lsfStudio.lsfTB.data.model.VaultFile
 import com.lsfStudio.lsfTB.data.model.FileType
+import com.lsfStudio.lsfTB.ui.component.video.VideoPlayerFromPath
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 import com.lsfStudio.lsfTB.ui.theme.isInDarkTheme
@@ -63,6 +65,7 @@ fun ImageViewerScreen(
     filePath: String,
     fileName: String,
     addedTime: Long,
+    fileId: Long = 0,  // 添加文件ID参数
     onBack: () -> Unit,
     onDelete: () -> Unit = {},
     onFavorite: () -> Unit = {},
@@ -75,13 +78,12 @@ fun ImageViewerScreen(
 ) {
     val context = LocalContext.current
     val navigator = com.lsfStudio.lsfTB.ui.navigation3.LocalNavigator.current
+    val scope = rememberCoroutineScope()
     var scale by remember { mutableStateOf(1f) }
     var offsetX by remember { mutableStateOf(0f) }
     var offsetY by remember { mutableStateOf(0f) }
     var showControls by remember { mutableStateOf(true) }
-    var isFavorite by remember { mutableStateOf(false) }
-    var showRenameDialog by remember { mutableStateOf(false) }
-    var renameInput by remember { mutableStateOf("") }
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
     
     // 当前显示的文件信息（支持切换）
     var actualCurrentIndex by remember { mutableIntStateOf(currentIndex) }
@@ -107,6 +109,33 @@ fun ImageViewerScreen(
             currentFileName.removeSuffix(".zip")
         } else {
             currentFileName
+        }
+    }
+    
+    // 移出文件到公共目录
+    suspend fun moveFileToPublic(fileId: Long, filePath: String, originalName: String) {
+        try {
+            // 创建目标目录
+            val targetDir = File("/sdcard/Pictures/lsfTB")
+            if (!targetDir.exists()) {
+                targetDir.mkdirs()
+            }
+            
+            // 目标文件路径
+            val targetFile = File(targetDir, originalName)
+            
+            // 复制文件内容
+            val sourceFile = File(filePath)
+            if (sourceFile.exists()) {
+                sourceFile.copyTo(targetFile, overwrite = true)
+                
+                // 确保复制成功后再删除原文件
+                if (targetFile.exists() && targetFile.length() > 0) {
+                    sourceFile.delete()
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
     
@@ -232,50 +261,65 @@ fun ImageViewerScreen(
                 }
                 .clickable(onClick = { showControls = !showControls })
         ) {
-            // 显示当前图片
-            AsyncImage(
-                model = File(currentFilePath),
-                contentDescription = currentFileName,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .graphicsLayer {
-                        scaleX = scale
-                        scaleY = scale
-                        translationX = offsetX + swipeOffsetX
-                        translationY = offsetY
-                    },
-                contentScale = ContentScale.Fit
-            )
+            // 获取当前文件类型
+            val currentFileType = allFiles?.getOrNull(actualCurrentIndex)?.fileType
             
-            // 向右滑动时显示上一张（在左侧）
-            if (swipeOffsetX > 0 && actualCurrentIndex > 0) {
-                allFiles?.getOrNull(actualCurrentIndex - 1)?.let { prevFile ->
-                    AsyncImage(
-                        model = File(prevFile.filePath),
-                        contentDescription = prevFile.originalName,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .graphicsLayer {
-                                translationX = swipeOffsetX - size.width
-                            },
-                        contentScale = ContentScale.Fit
-                    )
+            if (currentFileType == FileType.VIDEO) {
+                // 视频：使用VideoPlayer
+                VideoPlayerFromPath(
+                    videoPath = currentFilePath,
+                    autoPlay = true
+                )
+            } else {
+                // 图片：使用AsyncImage
+                AsyncImage(
+                    model = File(currentFilePath),
+                    contentDescription = currentFileName,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            scaleX = scale
+                            scaleY = scale
+                            translationX = offsetX + swipeOffsetX
+                            translationY = offsetY
+                        },
+                    contentScale = ContentScale.Fit
+                )
+                
+                // 向右滑动时显示上一张（在左侧）
+                if (swipeOffsetX > 0 && actualCurrentIndex > 0) {
+                    allFiles?.getOrNull(actualCurrentIndex - 1)?.let { prevFile ->
+                        if (prevFile.fileType == FileType.IMAGE) {
+                            AsyncImage(
+                                model = File(prevFile.filePath),
+                                contentDescription = prevFile.originalName,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .graphicsLayer {
+                                        translationX = swipeOffsetX - size.width
+                                    },
+                                contentScale = ContentScale.Fit
+                            )
+                        }
+                    }
                 }
-            }
-            
-            // 向左滑动时显示下一张（在右侧）
-            if (swipeOffsetX < 0 && actualCurrentIndex < (allFiles?.size ?: 0) - 1) {
-                allFiles?.getOrNull(actualCurrentIndex + 1)?.let { nextFile ->
-                    AsyncImage(
-                        model = File(nextFile.filePath),
-                        contentDescription = nextFile.originalName,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .graphicsLayer {
-                                translationX = swipeOffsetX + size.width
-                            },
-                        contentScale = ContentScale.Fit
-                    )
+                
+                // 向左滑动时显示下一张（在右侧）
+                if (swipeOffsetX < 0 && actualCurrentIndex < (allFiles?.size ?: 0) - 1) {
+                    allFiles?.getOrNull(actualCurrentIndex + 1)?.let { nextFile ->
+                        if (nextFile.fileType == FileType.IMAGE) {
+                            AsyncImage(
+                                model = File(nextFile.filePath),
+                                contentDescription = nextFile.originalName,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .graphicsLayer {
+                                        translationX = swipeOffsetX + size.width
+                                    },
+                                contentScale = ContentScale.Fit
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -382,107 +426,79 @@ fun ImageViewerScreen(
                     ) {
                         // 发送
                         BottomActionItem(
-                            icon = Icons.Rounded.Share,
+                            icon = Icons.AutoMirrored.Rounded.Send,
                             label = "发送",
-                            onClick = onShare,
-                            isDarkTheme = isDarkTheme
-                        )
-                        
-                        // 重命名
-                        BottomActionItem(
-                            icon = Icons.Rounded.Edit,
-                            label = "重命名",
                             onClick = {
-                                renameInput = displayName
-                                showRenameDialog = true
+                                // 获取当前文件类型和MIME类型
+                                val currentFileType = allFiles?.getOrNull(actualCurrentIndex)?.fileType
+                                val mimeType = if (currentFileType == FileType.VIDEO) "video/*" else "image/*"
+                                
+                                // 分享文件（不带.zip后缀）
+                                com.lsfStudio.lsfTB.ui.util.ShareUtil.shareFile(
+                                    context = context,
+                                    filePath = currentFilePath,
+                                    mimeType = mimeType,
+                                    originalFileName = displayName
+                                )
                             },
                             isDarkTheme = isDarkTheme
                         )
                         
-                        // 收藏
-                        BottomActionItem(
-                            icon = if (isFavorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-                            label = "收藏",
-                            onClick = {
-                                isFavorite = !isFavorite
-                                onFavorite()
-                            },
-                            isDarkTheme = isDarkTheme,
-                            activeColor = Color(0xFFFF4757)
-                        )
-                        
-                        // 删除
+                        // 移出
                         BottomActionItem(
                             icon = Icons.Rounded.Delete,
-                            label = "删除",
+                            label = "移出",
                             onClick = {
-                                onDelete()
-                                onBack()
+                                showDeleteConfirmDialog = true
                             },
                             isDarkTheme = isDarkTheme,
                             dangerColor = Color(0xFFFF4757)
-                        )
-                        
-                        // 更多
-                        BottomActionItem(
-                            icon = Icons.Rounded.MoreVert,
-                            label = "更多",
-                            onClick = { /* TODO */ },
-                            isDarkTheme = isDarkTheme
                         )
                     }
                 }
             }
         }
         
-        // 重命名对话框
-        if (showRenameDialog) {
+        // 移出确认对话框
+        if (showDeleteConfirmDialog) {
             AlertDialog(
                 onDismissRequest = {
-                    showRenameDialog = false
+                    showDeleteConfirmDialog = false
                 },
-                title = { Text("重命名") },
-                text = {
-                    TextField(
-                        value = renameInput,
-                        onValueChange = { renameInput = it },
-                        label = "输入新文件名（含扩展名）",
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                },
+                title = { Text("确认移出") },
+                text = { Text("确定要将此文件移出保险箱吗？\n文件将移动到 /sdcard/Pictures/lsfTB") },
                 confirmButton = {
                     TextButton(
-                        text = "确定",
                         onClick = {
                             com.lsfStudio.lsfTB.ui.util.HapticFeedbackUtil.lightClick(context)
-                            val success = renameFileInViewer(context, currentFilePath, displayName, renameInput)
-                            if (success) {
-                                android.widget.Toast.makeText(
-                                    context,
-                                    "重命名成功",
-                                    android.widget.Toast.LENGTH_SHORT
-                                ).show()
-                                // 更新当前文件信息
-                                currentFileName = "$renameInput.zip"
-                                currentFilePath = java.io.File(
-                                    context.filesDir, 
-                                    "vault/$renameInput.zip"
-                                ).absolutePath
-                                // 通知VaultScreen刷新
-                                navigator.setResult<Unit>("image_viewer_rename_${currentIndex}", Unit)
+                            // 执行移出操作
+                            scope.launch {
+                                moveFileToPublic(fileId, currentFilePath, displayName)
+                                
+                                // 通知VaultScreen刷新列表
+                                val requestKey = "image_viewer_delete_${fileId}"
+                                navigator.setResult<Long>(requestKey, fileId)
+                                
+                                showDeleteConfirmDialog = false
+                                onBack()
                             }
-                            showRenameDialog = false
-                        }
-                    )
+                        },
+                        colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
+                            contentColor = Color(0xFFFF4757)
+                        )
+                    ) {
+                        Text("移出")
+                    }
                 },
                 dismissButton = {
                     TextButton(
-                        text = "取消",
                         onClick = {
                             com.lsfStudio.lsfTB.ui.util.HapticFeedbackUtil.lightClick(context)
-                            showRenameDialog = false
+                            showDeleteConfirmDialog = false
                         }
-                    )
+                    ) {
+                        Text("取消")
+                    }
                 }
             )
         }
