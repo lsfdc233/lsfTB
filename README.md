@@ -52,34 +52,105 @@ lsfTB/
 ├── app/
 │   ├── src/main/
 │   │   ├── java/com/lsfStudio/lsfTB/
-│   │   │   ├── data/              # 数据层
-│   │   │   │   ├── model/         # 数据模型
-│   │   │   │   └── repository/    # 数据仓库
-│   │   │   ├── ui/                # UI 层
-│   │   │   │   ├── component/     # 可复用组件
-│   │   │   │   ├── navigation3/   # 导航系统
-│   │   │   │   ├── screen/        # 页面
-│   │   │   │   │   ├── about/     # 关于页面
-│   │   │   │   │   ├── colorpalette/  # 主题设置页面
-│   │   │   │   │   ├── home/      # 主页
-│   │   │   │   │   └── settings/  # 设置页面
-│   │   │   │   ├── theme/         # 主题系统
-│   │   │   │   ├── util/          # 工具类
-│   │   │   │   ├── viewmodel/     # ViewModel
-│   │   │   │   └── MainActivity.kt
-│   │   │   ├── lsfTBApplication.kt  # Application 类
-│   │   │   └── Natives.kt         # Native 方法
-│   │   ├── res/                   # 资源文件
-│   │   │   ├── mipmap-*/          # 启动图标
-│   │   │   ├── values/            # 主题和颜色
-│   │   │   └── xml/               # XML 配置
-│   │   └── AndroidManifest.xml
-│   └── build.gradle.kts
+│   │   │   ├── data/                      # 数据层
+│   │   │   │   ├── model/                 # 数据模型
+│   │   │   │   │   └── VaultFile.kt      # 保险箱文件模型
+│   │   │   │   └── repository/            # 数据仓库接口与实现
+│   │   │   │       ├── SettingsRepository.kt
+│   │   │   │       └── SettingsRepositoryImpl.kt
+│   │   │   ├── ui/                        # UI 层
+│   │   │   │   ├── animation/             # 动画效果
+│   │   │   │   │   ├── DampedDragAnimation.kt    # 阻尼拖拽动画
+│   │   │   │   │   └── InteractiveHighlight.kt   # 交互高亮效果
+│   │   │   │   ├── component/             # 可复用UI组件
+│   │   │   │   │   ├── bottombar/         # 底部导航栏相关
+│   │   │   │   │   ├── dialog/            # 对话框组件
+│   │   │   │   │   ├── filter/            # 筛选器组件
+│   │   │   │   │   ├── FloatingBottomBar.kt      # 浮动底部栏
+│   │   │   │   │   ├── KeyEventBlocker.kt        # 按键事件拦截器
+│   │   │   │   │   └── MenuPositionProvider.kt   # 菜单位置提供者
+│   │   │   │   ├── modifier/              # Compose Modifier扩展
+│   │   │   │   │   └── DragGestureInspector.kt   # 拖拽手势检查器
+│   │   │   │   ├── navigation3/           # 导航系统
+│   │   │   │   │   ├── DeepLinkResolver.kt       # 深度链接解析
+│   │   │   │   │   ├── Navigator.kt              # 导航控制器
+│   │   │   │   │   └── Routes.kt                 # 路由定义
+│   │   │   │   ├── screen/                # 页面模块
+│   │   │   │   │   ├── about/             # 关于页面
+│   │   │   │   │   │   ├── AboutScreen.kt
+│   │   │   │   │   │   ├── AboutScreenMiuix.kt
+│   │   │   │   │   │   ├── AboutViewModel.kt
+│   │   │   │   │   │   └── UpdateChecker.kt
+│   │   │   │   │   ├── colorpalette/      # 主题配色页面
+│   │   │   │   │   │   ├── ColorPaletteScreen.kt
+│   │   │   │   │   │   ├── ColorPaletteViewModel.kt
+│   │   │   │   │   │   └── ColorUtils.kt
+│   │   │   │   │   ├── home/              # 主页
+│   │   │   │   │   │   ├── HomeScreen.kt
+│   │   │   │   │   │   ├── HomeScreenActions.kt
+│   │   │   │   │   │   ├── HomeScreenMiuix.kt
+│   │   │   │   │   │   └── HomeViewModel.kt
+│   │   │   │   │   ├── settings/          # 设置页面
+│   │   │   │   │   │   ├── SettingsScreen.kt
+│   │   │   │   │   │   ├── SettingsScreenMiuix.kt
+│   │   │   │   │   │   └── SettingsViewModel.kt
+│   │   │   │   │   ├── twofa/             # 双因素认证
+│   │   │   │   │   │   └── TwoFAScreen.kt
+│   │   │   │   │   └── vault/             # 私密保险箱
+│   │   │   │   │       ├── ImageViewerScreen.kt  # 图片/视频查看器
+│   │   │   │   │       ├── VaultScreen.kt        # 保险箱主页面
+│   │   │   │   │       └── VideoPlayerScreen.kt  # 视频播放器
+│   │   │   │   ├── theme/                 # 主题系统
+│   │   │   │   │   ├── Colors.kt          # 颜色定义
+│   │   │   │   │   ├── MiuixTheme.kt      # Miuix主题配置
+│   │   │   │   │   └── Theme.kt           # 应用主题
+│   │   │   │   ├── util/                  # 工具类
+│   │   │   │   │   ├── DialogManager.kt   # 对话框管理
+│   │   │   │   │   ├── HapticFeedbackUtil.kt  # 震动反馈工具
+│   │   │   │   │   ├── PermissionHelper.kt    # 权限助手
+│   │   │   │   │   ├── ShareUtil.kt       # 分享工具
+│   │   │   │   │   └── WindowInsetsUtil.kt    # 窗口 insets 工具
+│   │   │   │   ├── viewmodel/             # ViewModel
+│   │   │   │   │   ├── AboutViewModel.kt
+│   │   │   │   │   ├── ColorPaletteViewModel.kt
+│   │   │   │   │   ├── HomeViewModel.kt
+│   │   │   │   │   ├── SettingsViewModel.kt
+│   │   │   │   │   └── VaultViewModel.kt
+│   │   │   │   ├── MainActivity.kt        # 主Activity
+│   │   │   │   └── UiMode.kt              # UI模式枚举
+│   │   │   └── lsfTBApplication.kt        # Application类
+│   │   ├── res/                           # 资源文件
+│   │   │   ├── drawable/                  # 矢量图形
+│   │   │   ├── mipmap-*/                  # 启动图标（多密度）
+│   │   │   │   ├── ic_launcher.webp
+│   │   │   │   ├── ic_launcher_background.webp
+│   │   │   │   ├── ic_launcher_foreground.webp
+│   │   │   │   └── ic_launcher_round.webp
+│   │   │   ├── values/                    # 值资源
+│   │   │   │   ├── colors.xml             # 颜色定义
+│   │   │   │   └── themes.xml             # 主题定义
+│   │   │   └── xml/                       # XML配置
+│   │   │       ├── backup_rules.xml       # 备份规则
+│   │   │       ├── data_extraction_rules.xml  # 数据提取规则
+│   │   │       ├── file_paths.xml         # 文件路径配置
+│   │   │       ├── filepaths.xml          # 文件路径配置（兼容）
+│   │   │       └── network_security_config.xml  # 网络安全配置
+│   │   ├── assets/                        # 静态资源
+│   │   │   └── github-markdown.css        # GitHub Markdown样式
+│   │   └── AndroidManifest.xml            # 应用清单
+│   ├── build.gradle.kts                   # 模块构建配置
+│   └── proguard-rules.pro                 # ProGuard混淆规则
 ├── gradle/
-│   └── libs.versions.toml         # 依赖版本管理
-├── build.gradle.kts               # 根项目配置
-├── settings.gradle.kts            # 项目设置
-└── sign.properties                # 签名配置（需自行创建）
+│   ├── wrapper/                           # Gradle Wrapper
+│   ├── gradle-daemon-jvm.properties       # Gradle守护进程JVM配置
+│   └── libs.versions.toml                 # 依赖版本目录（Catalog）
+├── build.gradle.kts                       # 根项目构建配置
+├── settings.gradle.kts                    # 项目设置
+├── gradle.properties                      # Gradle属性配置
+├── local.properties                       # 本地配置（SDK路径等）
+├── sign.properties                        # 签名配置（需自行创建）
+├── lsfTB.jks                              # 签名密钥库
+└── README.md                              # 项目说明文档
 ```
 
 ## ⚙️ 配置说明
