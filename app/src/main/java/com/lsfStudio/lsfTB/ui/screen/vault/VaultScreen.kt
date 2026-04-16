@@ -63,6 +63,7 @@ import com.lsfStudio.lsfTB.ui.LocalBottomBarVisibility
 import com.lsfStudio.lsfTB.data.model.VaultFile
 import com.lsfStudio.lsfTB.data.model.FileType
 import com.lsfStudio.lsfTB.ui.util.HapticFeedbackUtil
+import com.lsfStudio.lsfTB.ui.util.MessageManager
 import com.lsfStudio.lsfTB.ui.util.ShareUtil
 import java.io.File
 
@@ -587,12 +588,12 @@ fun VaultScreen() {
                                 isMultiSelectMode = false
                                 selectedFiles = emptySet()
                                 
-                                // 显示Toast通知
-                                android.widget.Toast.makeText(
+                                // 显示Toast通知（使用MessageManager自动适配超级岛）
+                                MessageManager.showToast(
                                     context,
                                     "已移出到 /sdcard/Pictures/lsfTB",
                                     android.widget.Toast.LENGTH_LONG
-                                ).show()
+                                )
                                 
                                 showDeleteConfirmDialog = false
                                 filesToDelete = emptyList()
@@ -683,11 +684,12 @@ fun VaultScreen() {
                                             showRenameDialog = false
                                             renameInput = ""
                                             filesToRename = emptyList()
-                                            android.widget.Toast.makeText(
+                                            // 显示成功提示（使用MessageManager自动适配超级岛）
+                                            MessageManager.showToast(
                                                 context,
                                                 "重命名成功",
                                                 android.widget.Toast.LENGTH_SHORT
-                                            ).show()
+                                            )
                                         }
                                     }
                                 } else {
@@ -765,11 +767,12 @@ fun VaultScreen() {
                                 renamePreviewList = emptyList()
                                 filesToRename = emptyList()
                                 renameInput = ""
-                                android.widget.Toast.makeText(
+                                // 显示成功提示（使用MessageManager自动适配超级岛）
+                                MessageManager.showToast(
                                     context,
                                     "批量重命名成功",
                                     android.widget.Toast.LENGTH_SHORT
-                                ).show()
+                                )
                             }
                         },
                         colors = ButtonDefaults.textButtonColorsPrimary()
@@ -941,7 +944,8 @@ private fun previewFile(context: Context, file: VaultFile) {
         context.startActivity(intent)
     } catch (e: Exception) {
         e.printStackTrace()
-        android.widget.Toast.makeText(context, "无法打开文件", android.widget.Toast.LENGTH_SHORT).show()
+        // 显示错误提示（使用MessageManager自动适配超级岛）
+        MessageManager.showToast(context, "无法打开文件", android.widget.Toast.LENGTH_SHORT)
     }
 }
 

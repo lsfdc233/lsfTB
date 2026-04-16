@@ -71,6 +71,7 @@ import com.lsfStudio.lsfTB.ui.screen.settings.SettingPager
 import com.lsfStudio.lsfTB.ui.screen.vault.VaultScreen
 import com.lsfStudio.lsfTB.ui.screen.vault.ImageViewerScreen
 import com.lsfStudio.lsfTB.ui.screen.vault.VideoPlayerScreen
+import com.lsfStudio.lsfTB.ui.screen.vault.ProfessionalVideoPlayerScreen
 import com.lsfStudio.lsfTB.ui.theme.lsfTBTheme
 import com.lsfStudio.lsfTB.ui.theme.LocalColorMode
 import com.lsfStudio.lsfTB.ui.theme.LocalEnableBlur
@@ -239,6 +240,33 @@ class MainActivity : ComponentActivity() {
                                     }
                                     
                                     VideoPlayerScreen(
+                                        filePath = route.filePath,
+                                        fileName = route.fileName,
+                                        fileId = route.fileId,
+                                        onBack = { navigator.pop() },
+                                        allFiles = allFiles,
+                                        currentIndex = route.currentIndex
+                                    )
+                                }
+                                // 横屏专业视频播放器路由
+                                entry<Route.ProfessionalVideoPlayer> { route ->
+                                    val allFiles = if (route.allFilePaths.isNotEmpty()) {
+                                        route.allFilePaths.mapIndexed { index, path ->
+                                            com.lsfStudio.lsfTB.data.model.VaultFile(
+                                                id = route.allAddedTimes.getOrNull(index) ?: 0L,
+                                                originalName = route.allFileNames.getOrNull(index) ?: "",
+                                                encryptedName = "",
+                                                filePath = path,
+                                                fileType = com.lsfStudio.lsfTB.data.model.FileType.VIDEO,
+                                                tags = emptyList(),
+                                                addedTime = route.allAddedTimes.getOrNull(index) ?: 0L
+                                            )
+                                        }
+                                    } else {
+                                        null
+                                    }
+                                    
+                                    ProfessionalVideoPlayerScreen(
                                         filePath = route.filePath,
                                         fileName = route.fileName,
                                         fileId = route.fileId,

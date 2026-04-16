@@ -57,9 +57,7 @@ object DownloadManager {
         // 检查是否已经在下载
         if (isDownloading) {
             Log.w(TAG, "已经有下载任务正在进行")
-            Handler(Looper.getMainLooper()).post {
-                Toast.makeText(context, "正在下载新版本", Toast.LENGTH_SHORT).show()
-            }
+            MessageManager.showToast(context, "正在下载新版本", Toast.LENGTH_SHORT)
             return
         }
         
@@ -152,8 +150,8 @@ object DownloadManager {
                         Log.d(TAG, "总进度: $progress% | 速度: $speedStr | 剩余: $timeStr")
                         callback.onProgress(progress, speedStr, timeStr)
                         
-                        // 更新通知
-                        NotificationHelper.showDownloadProgress(
+                        // 更新通知（使用MessageManager自动适配超级岛）
+                        MessageManager.showDownloadProgress(
                             context, versionName, progress, speedStr, timeStr
                         )
                         
@@ -176,8 +174,8 @@ object DownloadManager {
                 //     Toast.makeText(context, "下载完成，准备安装", Toast.LENGTH_LONG).show()
                 // }
                 
-                // 发送完成通知
-                NotificationHelper.showDownloadComplete(context, versionName, outputFile)
+                // 发送完成通知（使用MessageManager自动适配超级岛）
+                MessageManager.showDownloadComplete(context, versionName, outputFile)
                 
                 callback.onSuccess(outputFile)
                 
@@ -191,7 +189,7 @@ object DownloadManager {
                 // }
                 
                 callback.onError("下载失败: ${e.message}")
-                NotificationHelper.showErrorNotification(context, "下载失败", e.message ?: "未知错误")
+                MessageManager.showError(context, "下载失败", e.message ?: "未知错误")
             } finally {
                 // 重置下载状态
                 isDownloading = false

@@ -13,7 +13,8 @@ object ShareUtil {
             val sourceFile = File(filePath)
             
             if (!sourceFile.exists()) {
-                android.widget.Toast.makeText(context, "文件不存在", android.widget.Toast.LENGTH_SHORT).show()
+                // 显示错误提示（使用MessageManager自动适配超级岛）
+                MessageManager.showToast(context, "文件不存在", android.widget.Toast.LENGTH_SHORT)
                 return
             }
             
@@ -67,7 +68,8 @@ object ShareUtil {
             
         } catch (e: Exception) {
             e.printStackTrace()
-            android.widget.Toast.makeText(context, "分享失败: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+            // 显示错误提示（使用MessageManager自动适配超级岛）
+            MessageManager.showToast(context, "分享失败: ${e.message}", android.widget.Toast.LENGTH_LONG)
         }
     }
     
@@ -88,7 +90,8 @@ object ShareUtil {
             }
             
             if (uris.isEmpty()) {
-                android.widget.Toast.makeText(context, "没有可分享的文件", android.widget.Toast.LENGTH_SHORT).show()
+                // 显示错误提示（使用MessageManager自动适配超级岛）
+                MessageManager.showToast(context, "没有可分享的文件", android.widget.Toast.LENGTH_SHORT)
                 return
             }
             
@@ -106,7 +109,8 @@ object ShareUtil {
             context.startActivity(chooser)
         } catch (e: Exception) {
             e.printStackTrace()
-            android.widget.Toast.makeText(context, "分享失败: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+            // 显示错误提示（使用MessageManager自动适配超级岛）
+            MessageManager.showToast(context, "分享失败: ${e.message}", android.widget.Toast.LENGTH_LONG)
         }
     }
 }

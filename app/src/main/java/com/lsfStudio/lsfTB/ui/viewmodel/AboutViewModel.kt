@@ -85,14 +85,14 @@ class AboutViewModel : ViewModel() {
                         latestVersion.errorMessage
                     }
                                     
-                    // 在主线程显示 Toast
+                    // 在主线程显示 Toast（使用MessageManager自动适配超级岛）
                     android.os.Handler(android.os.Looper.getMainLooper()).post {
                         try {
-                            android.widget.Toast.makeText(
+                            com.lsfStudio.lsfTB.ui.util.MessageManager.showToast(
                                 context,
                                 toastMessage,
                                 android.widget.Toast.LENGTH_LONG
-                            ).show()
+                            )
                         } catch (e: Exception) {
                             android.util.Log.e("AboutViewModel", "显示 Toast 失败", e)
                         }

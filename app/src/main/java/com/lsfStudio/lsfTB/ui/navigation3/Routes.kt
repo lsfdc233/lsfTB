@@ -50,4 +50,16 @@ sealed interface Route : NavKey, Parcelable {
         val allAddedTimes: List<Long> = emptyList(),
         val currentIndex: Int = 0
     ) : Route
+    
+    @Parcelize
+    @Serializable
+    data class ProfessionalVideoPlayer(
+        val filePath: String,
+        val fileName: String,
+        val fileId: Long = 0,
+        val allFilePaths: List<String> = emptyList(),
+        val allFileNames: List<String> = emptyList(),
+        val allAddedTimes: List<Long> = emptyList(),
+        val currentIndex: Int = 0
+    ) : Route
 }

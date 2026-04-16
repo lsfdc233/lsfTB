@@ -148,7 +148,6 @@ fun VideoPlayerScreen(
     var isDragging by remember { mutableStateOf(false) }
     var dragPosition by remember { mutableLongStateOf(0L) }
     var previewFrameBitmap by remember { mutableStateOf<Bitmap?>(null) }
-    var isFullscreen by remember { mutableStateOf(false) }
     
     // 播放/暂停控制
     fun togglePlayPause() {
@@ -169,20 +168,6 @@ fun VideoPlayerScreen(
     fun seekTo(position: Long) {
         videoViewRef?.seekTo(position.toInt())
         currentPosition = position
-    }
-    
-    // 切换全屏（横屏）
-    fun toggleFullscreen() {
-        val activity = context as? ComponentActivity ?: return
-        if (isFullscreen) {
-            // 退出全屏，恢复竖屏
-            activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-            isFullscreen = false
-        } else {
-            // 进入全屏，切换横屏
-            activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-            isFullscreen = true
-        }
     }
     
     // 提取指定位置的帧
@@ -331,13 +316,24 @@ fun VideoPlayerScreen(
                     IconButton(
                         onClick = {
                             com.lsfStudio.lsfTB.ui.util.HapticFeedbackUtil.lightClick(context)
-                            toggleFullscreen()
+                            // 跳转到横屏专业播放器
+                            navigator.push(
+                                com.lsfStudio.lsfTB.ui.navigation3.Route.ProfessionalVideoPlayer(
+                                    filePath = currentFilePath,
+                                    fileName = currentFileName,
+                                    fileId = fileId,
+                                    allFilePaths = allFiles?.map { it.filePath } ?: emptyList(),
+                                    allFileNames = allFiles?.map { it.originalName } ?: emptyList(),
+                                    allAddedTimes = allFiles?.map { it.addedTime } ?: emptyList(),
+                                    currentIndex = actualCurrentIndex
+                                )
+                            )
                         },
                         modifier = Modifier.size(40.dp)
                     ) {
                         Icon(
-                            if (isFullscreen) Icons.Rounded.FullscreenExit else Icons.Rounded.Fullscreen,
-                            if (isFullscreen) "退出全屏" else "全屏播放",
+                            Icons.Rounded.Fullscreen,
+                            "全屏播放",
                             tint = if (isDarkTheme) Color.White else Color.Black,
                             modifier = Modifier.size(22.dp)
                         )

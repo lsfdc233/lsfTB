@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.sp
 import android.widget.Toast
 import com.lsfStudio.lsfTB.ui.theme.LocalEnableBlur
 import com.lsfStudio.lsfTB.ui.util.BlurredBar
+import com.lsfStudio.lsfTB.ui.util.MessageManager
 import com.lsfStudio.lsfTB.ui.util.ShizukuUtil
 import com.lsfStudio.lsfTB.ui.util.rememberBlurBackdrop
 import com.lsfStudio.lsfTB.ui.util.rememberShizukuConnectionState
@@ -129,11 +130,11 @@ fun HomePagerMiuix(
                                 if (isShizukuConnected.value) {
                                     // 已连接，点击刷新状态
                                     isShizukuConnected.value = ShizukuUtil.isConnected()
-                                    Toast.makeText(context, "状态已刷新", Toast.LENGTH_SHORT).show()
                                 } else {
                                     // 未连接，请求权限
                                     if (!ShizukuUtil.isShizukuAvailable()) {
-                                        Toast.makeText(context, "Shizuku 服务未启动，请先启动 Shizuku", Toast.LENGTH_LONG).show()
+                                        // 显示提示（使用MessageManager自动适配超级岛）
+                                        MessageManager.showToast(context, "Shizuku 服务未启动，请先启动 Shizuku", Toast.LENGTH_LONG)
                                     } else {
                                         ShizukuUtil.requestShizukuPermission()
                                     }
