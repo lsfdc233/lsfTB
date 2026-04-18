@@ -1497,9 +1497,10 @@ private fun generateTOTP(secret: String): String {
         val time = System.currentTimeMillis() / 1000 / 30
         
         val data = ByteArray(8)
+        var tempTime = time
         for (i in 7 downTo 0) {
-            data[i] = (time and 0xff).toByte()
-            time shr 8
+            data[i] = (tempTime and 0xff).toByte()
+            tempTime = tempTime shr 8
         }
         
         val mac = Mac.getInstance("HmacSHA1")
@@ -1530,9 +1531,10 @@ private fun generateHOTP(secret: String, counter: Long): String {
         val key = base32.decode(secret.uppercase().replace(" ", ""))
         
         val data = ByteArray(8)
+        var tempCounter = counter
         for (i in 7 downTo 0) {
-            data[i] = (counter and 0xff).toByte()
-            counter shr 8
+            data[i] = (tempCounter and 0xff).toByte()
+            tempCounter = tempCounter shr 8
         }
         
         val mac = Mac.getInstance("HmacSHA1")
