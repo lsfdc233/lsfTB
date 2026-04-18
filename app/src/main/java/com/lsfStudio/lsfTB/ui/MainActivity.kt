@@ -195,35 +195,40 @@ class MainActivity : ComponentActivity() {
                                         title = route.title,
                                         hint = route.hint,
                                         onScanSuccess = { result ->
-                                            // 扫描成功后返回结果
+                                            // 扫描成功后直接 pop，不 setResult
                                             Log.d("MainActivity", "扫码成功: $result")
                                             try {
+                                                // 先设置结果（如果 navigator 可用）
                                                 val requestKey = "qr_code_scan_result"
-                                                navigator.setResult<String>(requestKey, result)
-                                                Log.d("MainActivity", "setResult 完成")
-                                                // 使用 postDelayed 确保 setResult 完成后再 pop
+                                                if (navigator != null) {
+                                                    navigator.setResult<String>(requestKey, result)
+                                                    Log.d("MainActivity", "setResult 完成")
+                                                } else {
+                                                    Log.w("MainActivity", "navigator 为 null，跳过 setResult")
+                                                }
+                                                
+                                                // 延迟后 pop
                                                 android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
                                                     try {
-                                                        Log.d("MainActivity", "执行 pop, backStack size: ${navigator.backStack.size}")
-                                                        // 确保不会 pop 到空栈
-                                                        if (navigator.backStack.size > 1) {
+                                                        Log.d("MainActivity", "执行 pop, backStack size: ${navigator?.backStack?.size ?: 0}")
+                                                        if (navigator != null && navigator.backStack.size > 1) {
                                                             navigator.pop()
                                                             Log.d("MainActivity", "pop 成功")
                                                         } else {
-                                                            Log.w("MainActivity", "backStack 只有一个元素，不执行 pop")
+                                                            Log.w("MainActivity", "无法 pop: navigator=${navigator != null}, backStack size=${navigator?.backStack?.size ?: 0}")
                                                         }
                                                     } catch (e: Exception) {
                                                         Log.e("MainActivity", "pop 失败", e)
                                                     }
-                                                }, 300)
+                                                }, 500) // 增加到500ms确保稳定
                                             } catch (e: Exception) {
-                                                Log.e("MainActivity", "setResult 失败", e)
+                                                Log.e("MainActivity", "扫码回调异常", e)
                                             }
                                         },
                                         onDismiss = {
-                                            Log.d("MainActivity", "onDismiss, backStack size: ${navigator.backStack.size}")
+                                            Log.d("MainActivity", "onDismiss, backStack size: ${navigator?.backStack?.size ?: 0}")
                                             try {
-                                                if (navigator.backStack.size > 1) {
+                                                if (navigator != null && navigator.backStack.size > 1) {
                                                     navigator.pop()
                                                 }
                                             } catch (e: Exception) {
