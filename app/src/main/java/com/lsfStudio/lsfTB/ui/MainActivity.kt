@@ -13,6 +13,7 @@ package com.lsfStudio.lsfTB.ui
 
 import android.annotation.SuppressLint
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -64,6 +65,7 @@ import com.lsfStudio.lsfTB.ui.navigation3.Navigator
 import com.lsfStudio.lsfTB.ui.navigation3.Route
 import com.lsfStudio.lsfTB.ui.navigation3.rememberNavigator
 import com.lsfStudio.lsfTB.ui.screen.twofa.TwoFAScreen
+import com.lsfStudio.lsfTB.ui.component.scanner.QRCodeScanner
 import com.lsfStudio.lsfTB.ui.screen.about.AboutScreen
 import com.lsfStudio.lsfTB.ui.screen.colorpalette.ColorPaletteScreen
 import com.lsfStudio.lsfTB.ui.screen.home.HomePager
@@ -187,6 +189,35 @@ class MainActivity : ComponentActivity() {
                                 entry<Route.ColorPalette> { ColorPaletteScreen() }
                                 // 2FA 双因素认证页面路由
                                 entry<Route.TwoFA> { TwoFAScreen() }
+                                // 二维码扫描器路由
+                                entry<Route.QRCodeScanner> { route ->
+                                    QRCodeScanner(
+                                        title = route.title,
+                                        hint = route.hint,
+                                        onScanSuccess = { result ->
+                                            // 扫描成功后返回结果
+                                            Log.d("MainActivity", "扫码成功: $result")
+                                            val requestKey = "qr_code_scan_result"
+                                            navigator.setResult<String>(requestKey, result)
+                                            // 使用 postDelayed 确保 setResult 完成后再 pop
+                                            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                                                Log.d("MainActivity", "执行 pop, backStack size: ${navigator.backStack.size}")
+                                                // 确保不会 pop 到空栈
+                                                if (navigator.backStack.size > 1) {
+                                                    navigator.pop()
+                                                } else {
+                                                    Log.w("MainActivity", "backStack 只有一个元素，不执行 pop")
+                                                }
+                                            }, 200)
+                                        },
+                                        onDismiss = {
+                                            Log.d("MainActivity", "onDismiss, backStack size: ${navigator.backStack.size}")
+                                            if (navigator.backStack.size > 1) {
+                                                navigator.pop()
+                                            }
+                                        }
+                                    )
+                                }
                                 // 图片查看器路由
                                 entry<Route.ImageViewer> { route ->
                                     // 将路径列表转换为VaultFile列表

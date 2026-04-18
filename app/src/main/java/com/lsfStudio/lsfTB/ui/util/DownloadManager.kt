@@ -19,6 +19,9 @@ import java.util.concurrent.atomic.AtomicLong
  * 支持多线程断点续传下载
  * 
  * 模块化设计，可被其他服务调用
+ * 
+ * 注意：由于需要多线程Range请求，此处使用HttpURLConnection而非OkHttpClient
+ * OkHttpClient不直接支持多线程分段下载
  */
 object DownloadManager {
     private const val TAG = "DownloadManager"

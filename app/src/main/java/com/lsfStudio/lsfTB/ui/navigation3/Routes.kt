@@ -28,6 +28,13 @@ sealed interface Route : NavKey, Parcelable {
     
     @Parcelize
     @Serializable
+    data class QRCodeScanner(
+        val title: String = "扫描二维码",
+        val hint: String = "将二维码放入框内，即可自动扫描"
+    ) : Route
+    
+    @Parcelize
+    @Serializable
     data class ImageViewer(
         val filePath: String,
         val fileName: String,

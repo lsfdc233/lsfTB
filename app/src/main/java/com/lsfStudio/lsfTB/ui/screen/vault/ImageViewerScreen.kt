@@ -520,6 +520,7 @@ private fun BottomActionItem(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {

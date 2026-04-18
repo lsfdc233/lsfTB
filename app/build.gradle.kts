@@ -234,4 +234,13 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer:1.2.1")
     implementation("androidx.media3:media3-ui:1.2.1")
     implementation("androidx.media3:media3-common:1.2.1")
+    
+    // CameraX for QR code scanning
+    implementation("androidx.camera:camera-core:1.3.1")
+    implementation("androidx.camera:camera-camera2:1.3.1")
+    implementation("androidx.camera:camera-lifecycle:1.3.1")
+    implementation("androidx.camera:camera-view:1.3.1")
+    
+    // ML Kit for barcode scanning
+    implementation("com.google.mlkit:barcode-scanning:17.2.0")
 }

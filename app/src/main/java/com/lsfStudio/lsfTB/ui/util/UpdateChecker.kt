@@ -5,11 +5,8 @@ import android.util.Log
 import com.lsfStudio.lsfTB.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
-import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONObject
-import java.util.concurrent.TimeUnit
 
 /**
  * 检查新版本
@@ -38,34 +35,10 @@ suspend fun checkNewVersion(context: Context): LatestVersionInfo {
         val defaultValue = LatestVersionInfo.Empty
 
         runCatching {
-            // 创建 HTTP 客户端
-            val client = OkHttpClient.Builder()
-                .connectTimeout(10, TimeUnit.SECONDS)
-                .readTimeout(10, TimeUnit.SECONDS)
-                .build()
+            // 使用NetworkClient构建GitHub请求
+            val request = NetworkClient.buildGitHubRequest(url)
 
-            // 发送请求
-            val requestBuilder = Request.Builder()
-                .url(url)
-                .addHeader("Accept", "application/vnd.github.v3+json")
-                .addHeader("User-Agent", "lsfTB/${BuildConfig.VERSION_CODE}")
-            
-            // 尝试从 BuildConfig 获取 GitHub Token（如果存在）
-            try {
-                val tokenField = BuildConfig::class.java.getDeclaredField("GITHUB_TOKEN")
-                val token = tokenField.get(null) as? String
-                if (!token.isNullOrEmpty()) {
-                    requestBuilder.addHeader("Authorization", "token $token")
-                    Log.d("UpdateChecker", "使用 GitHub Token 进行认证")
-                }
-            } catch (e: Exception) {
-                // 没有配置 token，使用未认证的请求
-                Log.d("UpdateChecker", "未配置 GitHub Token，使用未认证请求")
-            }
-            
-            val request = requestBuilder.build()
-
-            client.newCall(request).execute().use { response ->
+            NetworkClient.execute(request).use { response ->
                 Log.d("UpdateChecker", "响应码: ${response.code}")
                 
                 // 检查响应是否成功
@@ -135,7 +108,7 @@ suspend fun checkNewVersion(context: Context): LatestVersionInfo {
                 }
 
                 // 获取当前版本的更新日志
-                val currentVersionChangelog = getCurrentVersionChangelog(client, requestBuilder)
+                val currentVersionChangelog = getCurrentVersionChangelog(request.url.toString())
 
                 // 返回版本信息
                 val result = LatestVersionInfo(
@@ -210,23 +183,19 @@ private fun parseVersionCode(tag: String): Int {
 /**
  * 获取当前版本的更新日志
  * 
- * @param client HTTP 客户端
- * @param requestBuilder 请求构建器
+ * @param latestReleaseUrl 最新release的URL，用于提取仓库信息
  * @return 当前版本的更新日志，如果未找到则返回空字符串
  */
-private fun getCurrentVersionChangelog(
-    client: OkHttpClient,
-    requestBuilder: Request.Builder
-): String {
+private fun getCurrentVersionChangelog(latestReleaseUrl: String): String {
     return try {
         val currentVersionCode = BuildConfig.VERSION_CODE
         Log.d("UpdateChecker", "开始获取当前版本 ($currentVersionCode) 的更新日志...")
         
-        // 获取所有 releases
-        val allReleasesUrl = "https://api.github.com/repos/lsfdc233/lsfTB/releases"
-        val request = requestBuilder.url(allReleasesUrl).build()
+        // 从latest release URL提取所有releases的URL
+        val allReleasesUrl = latestReleaseUrl.replace("/releases/latest", "/releases")
+        val request = NetworkClient.buildGitHubRequest(allReleasesUrl)
         
-        client.newCall(request).execute().use { response ->
+        NetworkClient.execute(request).use { response ->
             if (!response.isSuccessful) {
                 Log.w("UpdateChecker", "获取所有 releases 失败: ${response.code}")
                 return ""

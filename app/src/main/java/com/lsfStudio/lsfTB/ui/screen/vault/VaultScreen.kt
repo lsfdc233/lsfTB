@@ -808,6 +808,7 @@ private fun MultiSelectBottomItem(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
             .clickable(
                 onClick = {
                     HapticFeedbackUtil.lightClick(context)
