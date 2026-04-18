@@ -197,23 +197,37 @@ class MainActivity : ComponentActivity() {
                                         onScanSuccess = { result ->
                                             // 扫描成功后返回结果
                                             Log.d("MainActivity", "扫码成功: $result")
-                                            val requestKey = "qr_code_scan_result"
-                                            navigator.setResult<String>(requestKey, result)
-                                            // 使用 postDelayed 确保 setResult 完成后再 pop
-                                            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                                                Log.d("MainActivity", "执行 pop, backStack size: ${navigator.backStack.size}")
-                                                // 确保不会 pop 到空栈
-                                                if (navigator.backStack.size > 1) {
-                                                    navigator.pop()
-                                                } else {
-                                                    Log.w("MainActivity", "backStack 只有一个元素，不执行 pop")
-                                                }
-                                            }, 200)
+                                            try {
+                                                val requestKey = "qr_code_scan_result"
+                                                navigator.setResult<String>(requestKey, result)
+                                                Log.d("MainActivity", "setResult 完成")
+                                                // 使用 postDelayed 确保 setResult 完成后再 pop
+                                                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                                                    try {
+                                                        Log.d("MainActivity", "执行 pop, backStack size: ${navigator.backStack.size}")
+                                                        // 确保不会 pop 到空栈
+                                                        if (navigator.backStack.size > 1) {
+                                                            navigator.pop()
+                                                            Log.d("MainActivity", "pop 成功")
+                                                        } else {
+                                                            Log.w("MainActivity", "backStack 只有一个元素，不执行 pop")
+                                                        }
+                                                    } catch (e: Exception) {
+                                                        Log.e("MainActivity", "pop 失败", e)
+                                                    }
+                                                }, 300)
+                                            } catch (e: Exception) {
+                                                Log.e("MainActivity", "setResult 失败", e)
+                                            }
                                         },
                                         onDismiss = {
                                             Log.d("MainActivity", "onDismiss, backStack size: ${navigator.backStack.size}")
-                                            if (navigator.backStack.size > 1) {
-                                                navigator.pop()
+                                            try {
+                                                if (navigator.backStack.size > 1) {
+                                                    navigator.pop()
+                                                }
+                                            } catch (e: Exception) {
+                                                Log.e("MainActivity", "onDismiss pop 失败", e)
                                             }
                                         }
                                     )
