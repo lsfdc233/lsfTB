@@ -15,40 +15,55 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AddCircle
+import androidx.compose.material.icons.rounded.ArrowDownward
+import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Label
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.RemoveCircleOutline
 import androidx.compose.material.icons.rounded.SelectAll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Divider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.roundToInt
 import androidx.compose.ui.text.font.FontWeight
 import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
@@ -80,6 +95,31 @@ fun VaultScreen() {
     // 文件列表状态
     var vaultFiles by remember { mutableStateOf<List<VaultFile>>(loadVaultFiles(context)) }
     var refreshKey by remember { mutableStateOf(0) }
+    
+    // 当前选中的分类
+    var selectedCategory by remember { mutableStateOf("all") }
+    
+    // 自定义分类列表（从 SharedPreferences 加载）
+    var customCategories by remember { mutableStateOf<List<String>>(loadCustomCategories(context)) }
+    
+    // 每次进入页面时重新加载数据
+    LaunchedEffect(refreshKey) {
+        vaultFiles = loadVaultFiles(context)
+        customCategories = loadCustomCategories(context)
+    }
+    
+    // 根据分类过滤文件
+    val filteredFiles = when {
+        selectedCategory == "all" -> vaultFiles
+        selectedCategory == "photos" -> vaultFiles.filter { it.fileType == FileType.IMAGE }
+        selectedCategory == "videos" -> vaultFiles.filter { it.fileType == FileType.VIDEO }
+        selectedCategory.startsWith("custom_") -> {
+            // 自定义分类：筛选包含该分类的文件
+            val categoryName = selectedCategory.removePrefix("custom_")
+            vaultFiles.filter { categoryName in it.categories }
+        }
+        else -> vaultFiles
+    }
     
     // 监听ImageViewer的重命名结果（使用refreshKey触发重新订阅）
     LaunchedEffect(refreshKey) {
@@ -121,6 +161,8 @@ fun VaultScreen() {
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf(false) }
     var showPreviewDialog by remember { mutableStateOf(false) }
+    var showAddCategoryDialog by remember { mutableStateOf(false) }
+    var showAddToCategoryDialog by remember { mutableStateOf(false) }
     var fileToTag by remember { mutableStateOf<VaultFile?>(null) }
     var filesToExport by remember { mutableStateOf<List<VaultFile>>(emptyList()) }
     var filesToDelete by remember { mutableStateOf<List<VaultFile>>(emptyList()) }
@@ -128,6 +170,11 @@ fun VaultScreen() {
     var renamePreviewList by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) } // 源文件名 -> 新文件名
     var tagInput by remember { mutableStateOf("") }
     var renameInput by remember { mutableStateOf("") }
+    var categoryInput by remember { mutableStateOf("") }
+    var selectedCategoriesForAdd by remember { mutableStateOf<Set<String>>(emptySet()) }
+    
+    // 分类管理状态
+    var showCategoryManagePage by remember { mutableStateOf(false) }
     
     // 权限请求启动器
     val requestPermissionLauncher = rememberLauncherForActivityResult(
@@ -279,11 +326,114 @@ fun VaultScreen() {
                 }
             } else {
                 // 普通模式顶部栏
-                TopAppBar(
-                    color = colorScheme.surface,
-                    title = "私密保险箱",
-                    scrollBehavior = scrollBehavior
-                )
+                Column(
+                    modifier = Modifier
+                        .background(colorScheme.surface)
+                        .statusBarsPadding()
+                ) {
+                    // 标题栏
+                    TopAppBar(
+                        color = Color.Transparent,
+                        title = "私密保险箱",
+                        scrollBehavior = scrollBehavior,
+                        actions = {
+                            // 添加分类按钮（右侧）
+                            IconButton(
+                                onClick = {
+                                    HapticFeedbackUtil.lightClick(context)
+                                    categoryInput = ""
+                                    showAddCategoryDialog = true
+                                }
+                            ) {
+                                Icon(
+                                    Icons.Rounded.Add,
+                                    "添加分类",
+                                    tint = colorScheme.primary,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+                    )
+                    
+                    // 胶囊分类标签（横向滚动）
+                    val categoryScrollState = rememberScrollState()
+                    
+                    // 使用snapshotFlow检测滚动到边缘时震动（不影响点击）
+                    LaunchedEffect(Unit) {
+                        snapshotFlow { categoryScrollState.value }
+                            .collect { value ->
+                                if (value == 0 || value == categoryScrollState.maxValue) {
+                                    HapticFeedbackUtil.lightClick(context)
+                                }
+                            }
+                    }
+                    
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .horizontalScroll(categoryScrollState),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        CategoryChip(
+                            label = "全部",
+                            count = vaultFiles.size,
+                            isSelected = selectedCategory == "all",
+                            onClick = {
+                                HapticFeedbackUtil.lightClick(context)
+                                selectedCategory = "all"
+                            },
+                            onLongClick = {
+                                HapticFeedbackUtil.longPress(context)
+                                showCategoryManagePage = true
+                            }
+                        )
+                        CategoryChip(
+                            label = "照片",
+                            count = vaultFiles.count { it.fileType == FileType.IMAGE },
+                            isSelected = selectedCategory == "photos",
+                            onClick = {
+                                HapticFeedbackUtil.lightClick(context)
+                                selectedCategory = "photos"
+                            },
+                            onLongClick = {
+                                HapticFeedbackUtil.longPress(context)
+                                showCategoryManagePage = true
+                            }
+                        )
+                        CategoryChip(
+                            label = "视频",
+                            count = vaultFiles.count { it.fileType == FileType.VIDEO },
+                            isSelected = selectedCategory == "videos",
+                            onClick = {
+                                HapticFeedbackUtil.lightClick(context)
+                                selectedCategory = "videos"
+                            },
+                            onLongClick = {
+                                HapticFeedbackUtil.longPress(context)
+                                showCategoryManagePage = true
+                            }
+                        )
+                        
+                        // 显示自定义分类
+                        customCategories.forEach { category ->
+                            CategoryChip(
+                                label = category,
+                                count = vaultFiles.count { category in it.categories },
+                                isSelected = selectedCategory == "custom_$category",
+                                onClick = {
+                                    HapticFeedbackUtil.lightClick(context)
+                                    selectedCategory = "custom_$category"
+                                },
+                                onLongClick = {
+                                    HapticFeedbackUtil.longPress(context)
+                                    showCategoryManagePage = true
+                                }
+                            )
+                        }
+                    }
+                }
             }
         },
         bottomBar = {
@@ -353,7 +503,11 @@ fun VaultScreen() {
                             label = "添加到",
                             onClick = {
                                 HapticFeedbackUtil.lightClick(context)
-                                // TODO: 添加到功能
+                                val selectedFileList = vaultFiles.filter { it.id in selectedFiles }
+                                if (selectedFileList.isNotEmpty()) {
+                                    selectedCategoriesForAdd = emptySet()
+                                    showAddToCategoryDialog = true
+                                }
                             }
                         )
                         
@@ -414,22 +568,22 @@ fun VaultScreen() {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            if (vaultFiles.isEmpty()) {
-                    item(span = { GridItemSpan(maxLineSpan) }) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(400.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "点击下方 + 按钮添加私密文件",
-                                modifier = Modifier.padding(16.dp)
-                            )
-                        }
+            if (filteredFiles.isEmpty()) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(400.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "点击下方 + 按钮添加私密文件",
+                            modifier = Modifier.padding(16.dp)
+                        )
                     }
-                } else {
-                    items(vaultFiles, key = { it.id }) { file ->
+                }
+            } else {
+                items(filteredFiles, key = { it.id }) { file ->
                         VaultFileGridItem(
                             file = file,
                             isSelected = file.id in selectedFiles,
@@ -790,6 +944,399 @@ fun VaultScreen() {
                 }
             )
         }
+        
+        // 添加分类对话框
+        if (showAddCategoryDialog) {
+            WindowDialog(
+                show = showAddCategoryDialog,
+                title = "添加分类",
+                onDismissRequest = { 
+                    showAddCategoryDialog = false
+                    categoryInput = ""
+                }
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    TextField(
+                        value = categoryInput,
+                        onValueChange = { 
+                            // 限制最多20个字符
+                            if (it.length <= 20) {
+                                categoryInput = it 
+                            }
+                        },
+                        label = "输入分类名称（最多20个字符）",
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    
+                    Spacer(Modifier.height(16.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.End,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        TextButton(
+                            text = "取消",
+                            onClick = {
+                                HapticFeedbackUtil.lightClick(context)
+                                showAddCategoryDialog = false
+                                categoryInput = ""
+                            }
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        TextButton(
+                            text = "添加",
+                            onClick = {
+                                HapticFeedbackUtil.lightClick(context)
+                                val categoryName = categoryInput.trim()
+                                if (categoryName.isNotEmpty() && !customCategories.contains(categoryName)) {
+                                    customCategories = customCategories + categoryName
+                                    saveCustomCategories(context, customCategories)
+                                    showAddCategoryDialog = false
+                                    categoryInput = ""
+                                }
+                            },
+                            colors = ButtonDefaults.textButtonColorsPrimary()
+                        )
+                    }
+                }
+            }
+        }
+        
+        // 添加到分类对话框
+        if (showAddToCategoryDialog) {
+            WindowDialog(
+                show = showAddToCategoryDialog,
+                title = "添加到分类",
+                onDismissRequest = { 
+                    showAddToCategoryDialog = false
+                    selectedCategoriesForAdd = emptySet()
+                }
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    // 显示现有分类列表（可多选，支持滚动）
+                    if (customCategories.isEmpty()) {
+                        Text(
+                            text = "暂无自定义分类，请先创建分类",
+                            color = colorScheme.onSurface.copy(alpha = 0.6f),
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+                    } else {
+                        // 使用LazyColumn支持滚动，选项更紧密
+                        androidx.compose.foundation.lazy.LazyColumn(
+                            modifier = Modifier.heightIn(max = 300.dp),
+                            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(2.dp)
+                        ) {
+                            items(customCategories.size) { index ->
+                                val category = customCategories[index]
+                                val isSelected = category in selectedCategoriesForAdd
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .clickable {
+                                            selectedCategoriesForAdd = if (isSelected) {
+                                                selectedCategoriesForAdd - category
+                                            } else {
+                                                selectedCategoriesForAdd + category
+                                            }
+                                        }
+                                        .padding(vertical = 6.dp, horizontal = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    androidx.compose.material3.Checkbox(
+                                        checked = isSelected,
+                                        onCheckedChange = {
+                                            selectedCategoriesForAdd = if (isSelected) {
+                                                selectedCategoriesForAdd - category
+                                            } else {
+                                                selectedCategoriesForAdd + category
+                                            }
+                                        },
+                                        colors = androidx.compose.material3.CheckboxDefaults.colors(
+                                            checkedColor = colorScheme.primary,
+                                            checkmarkColor = colorScheme.onPrimary
+                                        )
+                                    )
+                                    Spacer(Modifier.width(4.dp))
+                                    Text(
+                                        text = category,
+                                        fontSize = 15.sp,
+                                        color = colorScheme.onSurface
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    
+                    Spacer(Modifier.height(16.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        TextButton(
+                            text = "取消",
+                            onClick = {
+                                HapticFeedbackUtil.lightClick(context)
+                                showAddToCategoryDialog = false
+                                selectedCategoriesForAdd = emptySet()
+                            }
+                        )
+                        
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            TextButton(
+                                text = "新建分类",
+                                onClick = {
+                                    HapticFeedbackUtil.lightClick(context)
+                                    // 不关闭当前对话框，叠加显示新建分类对话框
+                                    categoryInput = ""
+                                    showAddCategoryDialog = true
+                                }
+                            )
+                            TextButton(
+                                text = "添加",
+                                enabled = selectedCategoriesForAdd.isNotEmpty(),
+                                onClick = {
+                                    HapticFeedbackUtil.lightClick(context)
+                                    val selectedFileList = vaultFiles.filter { it.id in selectedFiles }
+                                    val fileCount = selectedFileList.size
+                                    
+                                    // 为选中的文件添加分类
+                                    vaultFiles = vaultFiles.map { file ->
+                                        if (file.id in selectedFiles) {
+                                            // 合并已有分类和新选择的分类（去重）
+                                            val newCategories = (file.categories + selectedCategoriesForAdd).distinct()
+                                            file.copy(categories = newCategories)
+                                        } else {
+                                            file
+                                        }
+                                    }
+                                    saveVaultFiles(context, vaultFiles)
+                                    
+                                    // 显示成功提示
+                                    MessageManager.showToast(context, "$fileCount 个文件成功添加")
+                                    
+                                    // 跳转到第一个选中的分类
+                                    val firstCategory = selectedCategoriesForAdd.firstOrNull()
+                                    if (firstCategory != null) {
+                                        selectedCategory = "custom_$firstCategory"
+                                    }
+                                    
+                                    // 退出多选状态
+                                    isMultiSelectMode = false
+                                    selectedFiles = emptySet()
+                                    
+                                    showAddToCategoryDialog = false
+                                    selectedCategoriesForAdd = emptySet()
+                                },
+                                colors = ButtonDefaults.textButtonColorsPrimary(),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 分类管理页面
+        if (showCategoryManagePage) {
+            // 系统分类 + 自定义分类
+            val systemCategories = listOf("全部", "照片", "视频")
+            var reorderList by remember { mutableStateOf((systemCategories + customCategories).toMutableList()) }
+            var draggedIndex by remember { mutableStateOf<Int?>(null) }
+            var dragOffsetY by remember { mutableStateOf(0f) } // 拖拽偏移量（相对于起始位置）
+            var dragStartY by remember { mutableStateOf(0f) } // 拖拽起始Y坐标
+            val listState = rememberLazyListState() // 列表状态，用于控制滚动
+            val coroutineScope = rememberCoroutineScope()
+            
+            WindowDialog(
+                show = showCategoryManagePage,
+                title = "管理分类",
+                onDismissRequest = { showCategoryManagePage = false }
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "长按拖动图标可调整自定义分类顺序",
+                        fontSize = 12.sp,
+                        color = Color.Gray,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.heightIn(max = 400.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(vertical = 8.dp) // 添加内边距，方便滚动
+                    ) {
+                        items(
+                            count = reorderList.size,
+                            key = { index -> reorderList[index] } // 使用分类名称作为key，提高性能
+                        ) { index ->
+                            val category = reorderList[index]
+                            val isDragging = draggedIndex == index
+                            val isSystemCategory = index < 3 // 前三个是系统分类
+                            
+                            // 计算分类数量
+                            val categoryCount = when (category) {
+                                "全部" -> vaultFiles.size
+                                "照片" -> vaultFiles.count { it.fileType == FileType.IMAGE }
+                                "视频" -> vaultFiles.count { it.fileType == FileType.VIDEO }
+                                else -> vaultFiles.count { category in it.categories }
+                            }
+                            
+                            // 如果是正在拖拽的项，添加偏移和放大效果
+                            val dragModifier = if (isDragging) {
+                                Modifier
+                                    .background(
+                                        color = colorScheme.surface,
+                                        shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)
+                                    )
+                                    .graphicsLayer {
+                                        translationY = dragOffsetY
+                                        scaleX = 1.05f  // 轻微放大
+                                        scaleY = 1.05f  // 轻微放大
+                                        shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)
+                                        clip = true
+                                    }
+                                    .alpha(0.98f)  // 轻微半透明
+                            } else {
+                                Modifier
+                            }
+                            
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp, horizontal = if (isDragging) 8.dp else 0.dp)
+                                    .then(dragModifier),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    category, 
+                                    fontSize = 16.sp, 
+                                    color = if (isSystemCategory) colorScheme.onSurface.copy(alpha = 0.4f) else colorScheme.onSurface,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Text(
+                                    "($categoryCount)", 
+                                    fontSize = 14.sp, 
+                                    color = if (isSystemCategory) colorScheme.onSurface.copy(alpha = 0.3f) else colorScheme.onSurface.copy(alpha = 0.7f),
+                                    modifier = Modifier.padding(end = 8.dp)
+                                )
+                                
+                                // 只有自定义分类才显示删除按钮
+                                if (!isSystemCategory) {
+                                    IconButton(onClick = {
+                                        HapticFeedbackUtil.lightClick(context)
+                                        vaultFiles = vaultFiles.map { it.copy(categories = it.categories - category) }
+                                        saveVaultFiles(context, vaultFiles)
+                                        val newList = reorderList.toMutableList()
+                                        newList.removeAt(index)
+                                        reorderList = newList
+                                        if (selectedCategory == "custom_$category") selectedCategory = "all"
+                                        MessageManager.showToast(context, "分类已删除")
+                                    }) {
+                                        Icon(Icons.Rounded.RemoveCircleOutline, "删除", tint = Color(0xFFFF4757), modifier = Modifier.size(24.dp))
+                                    }
+                                    
+                                    // 拖拽手柄 - 改进版
+                                    IconButton(
+                                        onClick = {},
+                                        modifier = Modifier.pointerInput(category) {
+                                            detectDragGesturesAfterLongPress(
+                                                onDragStart = { offset ->
+                                                    HapticFeedbackUtil.longPress(context)
+                                                    draggedIndex = index
+                                                    dragStartY = offset.y
+                                                    dragOffsetY = 0f
+                                                },
+                                                onDrag = { change, dragAmount ->
+                                                    change.consume()
+                                                    if (draggedIndex == null) return@detectDragGesturesAfterLongPress
+                                                    
+                                                    // 累积拖拽偏移（不重置）
+                                                    dragOffsetY += dragAmount.y
+                                                    
+                                                    // 计算目标位置（基于累积偏移）
+                                                    val itemHeight = 50.dp.toPx() // 估算每项高度
+                                                    val offsetItems = (dragOffsetY / itemHeight).roundToInt()
+                                                    var newIndex = (draggedIndex!! + offsetItems)
+                                                        .coerceIn(0, reorderList.size - 1)
+                                                    
+                                                    // 防止拖拽到系统分类区域（前3个）
+                                                    if (draggedIndex!! >= 3 && newIndex < 3) {
+                                                        newIndex = 3 // 最多只能拖到第4个位置
+                                                    }
+                                                    
+                                                    if (newIndex != draggedIndex!!) {
+                                                        val newList = reorderList.toMutableList()
+                                                        val item = newList.removeAt(draggedIndex!!)
+                                                        newList.add(newIndex, item)
+                                                        reorderList = newList
+                                                        draggedIndex = newIndex
+                                                        // 关键：减去已交换的偏移量，而不是重置为0
+                                                        dragOffsetY -= offsetItems * itemHeight
+                                                        
+                                                        // 每次交换触发震动
+                                                        HapticFeedbackUtil.lightClick(context)
+                                                    }
+                                                    
+                                                    // 边缘检测和自动滚动
+                                                    val viewportHeight = 400.dp.toPx() // LazyColumn的高度
+                                                    val firstVisibleIndex = listState.firstVisibleItemIndex
+                                                    
+                                                    // 检测是否在顶部边缘（前20%区域）
+                                                    if (change.position.y < viewportHeight * 0.2 && firstVisibleIndex > 3) {
+                                                        coroutineScope.launch {
+                                                            listState.animateScrollToItem(firstVisibleIndex - 1)
+                                                        }
+                                                    }
+                                                    // 检测是否在底部边缘（后20%区域）
+                                                    else if (change.position.y > viewportHeight * 0.8 && 
+                                                             firstVisibleIndex < reorderList.size - 1) {
+                                                        coroutineScope.launch {
+                                                            listState.animateScrollToItem(firstVisibleIndex + 1)
+                                                        }
+                                                    }
+                                                },
+                                                onDragEnd = { 
+                                                    draggedIndex = null
+                                                    dragOffsetY = 0f
+                                                },
+                                                onDragCancel = { 
+                                                    draggedIndex = null
+                                                    dragOffsetY = 0f
+                                                }
+                                            )
+                                        }
+                                    ) {
+                                        Icon(Icons.Rounded.DragHandle, "拖动", tint = if (isDragging) colorScheme.primary else colorScheme.onSurface.copy(alpha = 0.5f))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    Spacer(Modifier.height(16.dp))
+                    Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
+                        TextButton(text = "取消", onClick = { HapticFeedbackUtil.lightClick(context); showCategoryManagePage = false })
+                        Spacer(Modifier.width(12.dp))
+                        TextButton(
+                            text = "保存",
+                            onClick = {
+                                HapticFeedbackUtil.lightClick(context)
+                                // 只保存自定义分类（排除前三个系统分类）
+                                val customOnly = reorderList.drop(3)
+                                customCategories = customOnly
+                                saveCustomCategories(context, customOnly)
+                                showCategoryManagePage = false
+                                MessageManager.showToast(context, "排序已保存")
+                            },
+                            colors = ButtonDefaults.textButtonColorsPrimary()
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -894,7 +1441,8 @@ private suspend fun handleSelectedFile(
                 encryptedName = encryptedName,
                 filePath = destFile.absolutePath,
                 fileType = fileType,
-                tags = emptyList()
+                tags = emptyList(),
+                categories = emptyList()
             )
             
             onSuccess(vaultFile)
@@ -1387,4 +1935,87 @@ private fun getVideoThumbnail(filePath: String): Bitmap? {
         e.printStackTrace()
         null
     }
+}
+
+/**
+ * 胶囊分类标签组件
+ */
+@Composable
+fun CategoryChip(
+    label: String,
+    count: Int,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null
+) {
+    val backgroundColor = if (isSelected) {
+        colorScheme.primary
+    } else {
+        colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    }
+    
+    val contentColor = if (isSelected) {
+        colorScheme.onPrimary
+    } else {
+        colorScheme.onSurface.copy(alpha = 0.7f)
+    }
+    
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(backgroundColor)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = { onClick() },
+                    onLongPress = { onLongClick?.invoke() }
+                )
+            }
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = label,
+                fontSize = 14.sp,
+                fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
+                color = contentColor
+            )
+            Spacer(Modifier.width(4.dp))
+            Text(
+                text = "($count)",
+                fontSize = 12.sp,
+                color = contentColor.copy(alpha = 0.7f)
+            )
+        }
+    }
+}
+
+/**
+ * 保存自定义分类到 SharedPreferences
+ */
+private fun saveCustomCategories(context: Context, categories: List<String>) {
+    val prefs = context.getSharedPreferences("vault_categories", Context.MODE_PRIVATE)
+    val editor = prefs.edit()
+    editor.putInt("category_count", categories.size)
+    categories.forEachIndexed { index, category ->
+        editor.putString("category_$index", category)
+    }
+    editor.apply()
+}
+
+/**
+ * 从 SharedPreferences 加载自定义分类
+ */
+private fun loadCustomCategories(context: Context): List<String> {
+    val prefs = context.getSharedPreferences("vault_categories", Context.MODE_PRIVATE)
+    val count = prefs.getInt("category_count", 0)
+    val categories = mutableListOf<String>()
+    for (i in 0 until count) {
+        prefs.getString("category_$i", null)?.let {
+            categories.add(it)
+        }
+    }
+    return categories
 }

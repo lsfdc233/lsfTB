@@ -10,6 +10,7 @@ data class VaultFile(
     val filePath: String,          // 文件在私有目录的路径
     val fileType: FileType,        // 文件类型（图片/视频）
     val tags: List<String>,        // 标签列表
+    val categories: List<String> = emptyList(),  // 分类列表（自定义分类名称）
     val addedTime: Long = System.currentTimeMillis()  // 添加时间
 )
 
