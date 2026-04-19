@@ -82,6 +82,7 @@ import com.lsfStudio.lsfTB.ui.theme.LocalEnableFloatingBottomBarBlur
 import com.lsfStudio.lsfTB.ui.util.rememberBlurBackdrop
 import com.lsfStudio.lsfTB.ui.util.rememberContentReady
 import com.lsfStudio.lsfTB.ui.viewmodel.MainActivityViewModel
+import com.lsfStudio.lsfTB.BuildConfig
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.blur.layerBackdrop as miuixLayerBackdrop
@@ -101,6 +102,11 @@ class MainActivity : ComponentActivity() {
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // 🧪 数据库测试（仅调试模式，测试完成后请注释）
+        // if (BuildConfig.DEBUG) {
+        //     com.lsfStudio.lsfTB.ui.screen.vault.DatabaseTest.runTest(applicationContext)
+        // }
 
         // 设置Compose内容视图
         setContent {

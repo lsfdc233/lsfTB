@@ -1,6 +1,9 @@
 @file:Suppress("UnstableApiUsage")
 
 import java.io.FileInputStream
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.Properties
 
 plugins {
@@ -108,6 +111,10 @@ android {
         // 从 gradle.properties 或 local.properties 读取 GitHub Token（可选）
         val githubToken = project.findProperty("GITHUB_TOKEN")?.toString() ?: ""
         buildConfigField("String", "GITHUB_TOKEN", "\"$githubToken\"")
+        
+        // 添加构建时间
+        val buildTime = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+        buildConfigField("String", "BUILD_TIME", "\"$buildTime\"")
         
         // 只保留 arm64-v8a 架构，移除其他架构以减小APK体积
         ndk {

@@ -92,6 +92,12 @@ fun VaultScreen() {
     val scrollBehavior = MiuixScrollBehavior()
     val navigator = LocalNavigator.current
     
+    // 创建 CategoryManager（用于持久化分类数据）
+    val categoryManager = remember { com.lsfStudio.lsfTB.ui.viewmodel.CategoryManager(context) }
+    
+    // 创建数据库中间件（用于资源管理）
+    val dbMiddleware = remember { VaultDatabaseMiddleware(context) }
+    
     // 文件列表状态
     var vaultFiles by remember { mutableStateOf<List<VaultFile>>(loadVaultFiles(context)) }
     var refreshKey by remember { mutableStateOf(0) }
@@ -99,13 +105,12 @@ fun VaultScreen() {
     // 当前选中的分类
     var selectedCategory by remember { mutableStateOf("all") }
     
-    // 自定义分类列表（从 SharedPreferences 加载）
-    var customCategories by remember { mutableStateOf<List<String>>(loadCustomCategories(context)) }
+    // 自定义分类列表（从 CategoryManager 获取，响应式）
+    val customCategories by categoryManager.customCategories.collectAsState()
     
     // 每次进入页面时重新加载数据
     LaunchedEffect(refreshKey) {
         vaultFiles = loadVaultFiles(context)
-        customCategories = loadCustomCategories(context)
     }
     
     // 根据分类过滤文件
@@ -215,7 +220,7 @@ fun VaultScreen() {
         if (uris.isNotEmpty()) {
             scope.launch {
                 uris.forEach { uri ->
-                    handleSelectedFile(context, uri) { newFile ->
+                    handleSelectedFile(context, uri, dbMiddleware) { newFile ->
                         vaultFiles = vaultFiles + newFile
                         saveVaultFiles(context, vaultFiles)
                     }
@@ -230,7 +235,7 @@ fun VaultScreen() {
     ) { treeUri: Uri? ->
         treeUri?.let {
             scope.launch {
-                exportSelectedFiles(context, filesToExport, it)
+                exportSelectedFiles(context, filesToExport, it, dbMiddleware)
                 // 删除已导出的文件
                 vaultFiles = vaultFiles.filter { file ->
                     !filesToExport.any { exported -> exported.id == file.id }
@@ -466,12 +471,17 @@ fun VaultScreen() {
                                     val firstFile = selectedFileList.first()
                                     val mimeType = if (firstFile.fileType == FileType.VIDEO) "video/*" else "image/*"
                                     
-                                    // 分享文件（不带.zip后缀）
+                                    // 提取扩展名（兼容旧数据）
+                                    val extension = firstFile.originalName.substringAfterLast('.', "")
+                                    val extWithDot = if (extension.isNotEmpty()) ".${extension}" else ""
+                                    
+                                    // 分享文件（按元数据重命名）
                                     ShareUtil.shareFile(
                                         context = context,
                                         filePath = firstFile.filePath,
                                         mimeType = mimeType,
-                                        originalFileName = firstFile.originalName
+                                        originalFileName = firstFile.originalName.substringBeforeLast('.'),
+                                        extension = extWithDot
                                     )
                                 }
                             }
@@ -505,7 +515,19 @@ fun VaultScreen() {
                                 HapticFeedbackUtil.lightClick(context)
                                 val selectedFileList = vaultFiles.filter { it.id in selectedFiles }
                                 if (selectedFileList.isNotEmpty()) {
-                                    selectedCategoriesForAdd = emptySet()
+                                    // 计算所有选中文件的分类交集（已属于的分类）
+                                    val commonCategories = if (selectedFileList.size == 1) {
+                                        // 只有一个文件，直接使用它的分类
+                                        selectedFileList.first().categories.toSet()
+                                    } else {
+                                        // 多个文件，取交集
+                                        selectedFileList
+                                            .map { it.categories.toSet() }
+                                            .reduce { acc, set -> acc.intersect(set) }
+                                    }
+                                    
+                                    android.util.Log.d("VaultScreen", "📊 选中${selectedFileList.size}个文件，共同分类: $commonCategories")
+                                    selectedCategoriesForAdd = commonCategories
                                     showAddToCategoryDialog = true
                                 }
                             }
@@ -829,7 +851,7 @@ fun VaultScreen() {
                                 if (isSingleFile) {
                                     // 单文件直接重命名
                                     scope.launch {
-                                        val renamedFile = renameSingleFile(context, filesToRename.first(), renameInput)
+                                        val renamedFile = renameSingleFile(context, filesToRename.first(), renameInput, dbMiddleware)
                                         if (renamedFile != null) {
                                             vaultFiles = vaultFiles.map { 
                                                 if (it.id == renamedFile.id) renamedFile else it 
@@ -910,7 +932,7 @@ fun VaultScreen() {
                         onClick = {
                             HapticFeedbackUtil.lightClick(context)
                             scope.launch {
-                                val renamedFiles = executeBatchRename(context, filesToRename, renameInput)
+                                val renamedFiles = executeBatchRename(context, filesToRename, renameInput, dbMiddleware)
                                 // 更新 vaultFiles 中的对应项
                                 vaultFiles = vaultFiles.map { file ->
                                     val renamed = renamedFiles.find { it.id == file.id }
@@ -988,8 +1010,7 @@ fun VaultScreen() {
                                 HapticFeedbackUtil.lightClick(context)
                                 val categoryName = categoryInput.trim()
                                 if (categoryName.isNotEmpty() && !customCategories.contains(categoryName)) {
-                                    customCategories = customCategories + categoryName
-                                    saveCustomCategories(context, customCategories)
+                                    categoryManager.addCategory(categoryName)
                                     showAddCategoryDialog = false
                                     categoryInput = ""
                                 }
@@ -1033,10 +1054,37 @@ fun VaultScreen() {
                                         .fillMaxWidth()
                                         .clip(RoundedCornerShape(8.dp))
                                         .clickable {
-                                            selectedCategoriesForAdd = if (isSelected) {
-                                                selectedCategoriesForAdd - category
+                                            // 处理分类切换
+                                            if (isSelected) {
+                                                // 取消勾选：从数据库中移除关联
+                                                val selectedFileList = vaultFiles.filter { it.id in selectedFiles }
+                                                selectedFileList.forEach { file ->
+                                                    val resourceUid = dbMiddleware.getResourceByPath(file.filePath)
+                                                    if (resourceUid != null) {
+                                                        val allCategories = dbMiddleware.getAllCategories()
+                                                        val categoryObj = allCategories.find { it["name"] == category && !(it["isSystem"] as Boolean) }
+                                                        if (categoryObj != null) {
+                                                            val categoryUid = categoryObj["uid"] as String
+                                                            dbMiddleware.removeResourceFromCategory(resourceUid, categoryUid)
+                                                            android.util.Log.d("VaultScreen", "❌ 移除关联: resource=$resourceUid, category=$categoryUid ($category)")
+                                                        }
+                                                    }
+                                                }
+                                                
+                                                // 更新内存状态
+                                                vaultFiles = vaultFiles.map { file ->
+                                                    if (file.id in selectedFiles) {
+                                                        file.copy(categories = file.categories - category)
+                                                    } else {
+                                                        file
+                                                    }
+                                                }
+                                                saveVaultFiles(context, vaultFiles)
+                                                
+                                                selectedCategoriesForAdd = selectedCategoriesForAdd - category
                                             } else {
-                                                selectedCategoriesForAdd + category
+                                                // 勾选：添加到选中集合（实际添加在“添加”按钮中处理）
+                                                selectedCategoriesForAdd = selectedCategoriesForAdd + category
                                             }
                                         }
                                         .padding(vertical = 6.dp, horizontal = 4.dp),
@@ -1045,10 +1093,37 @@ fun VaultScreen() {
                                     androidx.compose.material3.Checkbox(
                                         checked = isSelected,
                                         onCheckedChange = {
-                                            selectedCategoriesForAdd = if (isSelected) {
-                                                selectedCategoriesForAdd - category
+                                            // 处理分类切换
+                                            if (isSelected) {
+                                                // 取消勾选：从数据库中移除关联
+                                                val selectedFileList = vaultFiles.filter { it.id in selectedFiles }
+                                                selectedFileList.forEach { file ->
+                                                    val resourceUid = dbMiddleware.getResourceByPath(file.filePath)
+                                                    if (resourceUid != null) {
+                                                        val allCategories = dbMiddleware.getAllCategories()
+                                                        val categoryObj = allCategories.find { it["name"] == category && !(it["isSystem"] as Boolean) }
+                                                        if (categoryObj != null) {
+                                                            val categoryUid = categoryObj["uid"] as String
+                                                            dbMiddleware.removeResourceFromCategory(resourceUid, categoryUid)
+                                                            android.util.Log.d("VaultScreen", "❌ 移除关联: resource=$resourceUid, category=$categoryUid ($category)")
+                                                        }
+                                                    }
+                                                }
+                                                
+                                                // 更新内存状态
+                                                vaultFiles = vaultFiles.map { file ->
+                                                    if (file.id in selectedFiles) {
+                                                        file.copy(categories = file.categories - category)
+                                                    } else {
+                                                        file
+                                                    }
+                                                }
+                                                saveVaultFiles(context, vaultFiles)
+                                                
+                                                selectedCategoriesForAdd = selectedCategoriesForAdd - category
                                             } else {
-                                                selectedCategoriesForAdd + category
+                                                // 勾选：添加到选中集合（实际添加在“添加”按钮中处理）
+                                                selectedCategoriesForAdd = selectedCategoriesForAdd + category
                                             }
                                         },
                                         colors = androidx.compose.material3.CheckboxDefaults.colors(
@@ -1070,7 +1145,8 @@ fun VaultScreen() {
                     Spacer(Modifier.height(16.dp))
                     Row(
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         TextButton(
                             text = "取消",
@@ -1082,7 +1158,8 @@ fun VaultScreen() {
                         )
                         
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             TextButton(
                                 text = "新建分类",
@@ -1094,19 +1171,71 @@ fun VaultScreen() {
                                 }
                             )
                             TextButton(
-                                text = "添加",
-                                enabled = selectedCategoriesForAdd.isNotEmpty(),
+                                text = "确认修改",
                                 onClick = {
                                     HapticFeedbackUtil.lightClick(context)
                                     val selectedFileList = vaultFiles.filter { it.id in selectedFiles }
                                     val fileCount = selectedFileList.size
                                     
-                                    // 为选中的文件添加分类
+                                    // 计算需要添加的分类（当前勾选 - 原本就有的）
+                                    val originalCommonCategories = if (selectedFileList.size == 1) {
+                                        selectedFileList.first().categories.toSet()
+                                    } else {
+                                        selectedFileList
+                                            .map { it.categories.toSet() }
+                                            .reduce { acc, set -> acc.intersect(set) }
+                                    }
+                                    val categoriesToAdd = selectedCategoriesForAdd - originalCommonCategories
+                                    val categoriesToRemove = originalCommonCategories - selectedCategoriesForAdd
+                                    
+                                    android.util.Log.d("VaultScreen", "📊 原始共同分类: $originalCommonCategories")
+                                    android.util.Log.d("VaultScreen", "📊 需要添加: $categoriesToAdd, 需要移除: $categoriesToRemove")
+                                    
+                                    // 为选中的文件处理分类变更（保存到数据库）
+                                    selectedFileList.forEach { file ->
+                                        // 获取或创建资源记录
+                                        var resourceUid = dbMiddleware.getResourceByPath(file.filePath)
+                                        if (resourceUid == null) {
+                                            // 如果资源不存在，创建新记录
+                                            val extension = file.originalName.substringAfterLast('.', "")
+                                            val nameWithoutExt = file.originalName.substringBeforeLast('.')
+                                            resourceUid = dbMiddleware.addResource(
+                                                originalName = nameWithoutExt,
+                                                extension = if (extension.isNotEmpty()) ".${extension}" else "",
+                                                filePath = file.filePath,
+                                                fileType = file.fileType.name,
+                                                fileSize = File(file.filePath).length()
+                                            )
+                                        }
+                                        
+                                        // 添加新分类
+                                        categoriesToAdd.forEach { categoryName ->
+                                            val allCategories = dbMiddleware.getAllCategories()
+                                            val category = allCategories.find { it["name"] == categoryName && !(it["isSystem"] as Boolean) }
+                                            if (category != null) {
+                                                val categoryUid = category["uid"] as String
+                                                dbMiddleware.addResourceToCategory(resourceUid, categoryUid)
+                                                android.util.Log.d("VaultScreen", "✅ 添加关联: resource=$resourceUid, category=$categoryUid ($categoryName)")
+                                            }
+                                        }
+                                        
+                                        // 移除已取消的分类
+                                        categoriesToRemove.forEach { categoryName ->
+                                            val allCategories = dbMiddleware.getAllCategories()
+                                            val category = allCategories.find { it["name"] == categoryName && !(it["isSystem"] as Boolean) }
+                                            if (category != null) {
+                                                val categoryUid = category["uid"] as String
+                                                dbMiddleware.removeResourceFromCategory(resourceUid, categoryUid)
+                                                android.util.Log.d("VaultScreen", "❌ 移除关联: resource=$resourceUid, category=$categoryUid ($categoryName)")
+                                            }
+                                        }
+                                    }
+                                    
+                                    // 更新内存中的状态
                                     vaultFiles = vaultFiles.map { file ->
                                         if (file.id in selectedFiles) {
-                                            // 合并已有分类和新选择的分类（去重）
-                                            val newCategories = (file.categories + selectedCategoriesForAdd).distinct()
-                                            file.copy(categories = newCategories)
+                                            // 使用当前勾选的分类集合
+                                            file.copy(categories = selectedCategoriesForAdd.toList())
                                         } else {
                                             file
                                         }
@@ -1114,7 +1243,20 @@ fun VaultScreen() {
                                     saveVaultFiles(context, vaultFiles)
                                     
                                     // 显示成功提示
-                                    MessageManager.showToast(context, "$fileCount 个文件成功添加")
+                                    when {
+                                        categoriesToAdd.isNotEmpty() && categoriesToRemove.isNotEmpty() -> {
+                                            MessageManager.showToast(context, "$fileCount 个文件分类已更新")
+                                        }
+                                        categoriesToAdd.isNotEmpty() -> {
+                                            MessageManager.showToast(context, "$fileCount 个文件已添加分类")
+                                        }
+                                        categoriesToRemove.isNotEmpty() -> {
+                                            MessageManager.showToast(context, "$fileCount 个文件已移出分类")
+                                        }
+                                        else -> {
+                                            MessageManager.showToast(context, "分类未变化")
+                                        }
+                                    }
                                     
                                     // 跳转到第一个选中的分类
                                     val firstCategory = selectedCategoriesForAdd.firstOrNull()
@@ -1129,8 +1271,7 @@ fun VaultScreen() {
                                     showAddToCategoryDialog = false
                                     selectedCategoriesForAdd = emptySet()
                                 },
-                                colors = ButtonDefaults.textButtonColorsPrimary(),
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                colors = ButtonDefaults.textButtonColorsPrimary()
                             )
                         }
                     }
@@ -1227,8 +1368,13 @@ fun VaultScreen() {
                                 if (!isSystemCategory) {
                                     IconButton(onClick = {
                                         HapticFeedbackUtil.lightClick(context)
+                                        // 使用 CategoryManager 删除分类（会自动持久化）
+                                        categoryManager.removeCategory(category)
+                                        
+                                        // 从文件中移除该分类标签
                                         vaultFiles = vaultFiles.map { it.copy(categories = it.categories - category) }
                                         saveVaultFiles(context, vaultFiles)
+                                        
                                         val newList = reorderList.toMutableList()
                                         newList.removeAt(index)
                                         reorderList = newList
@@ -1326,8 +1472,7 @@ fun VaultScreen() {
                                 HapticFeedbackUtil.lightClick(context)
                                 // 只保存自定义分类（排除前三个系统分类）
                                 val customOnly = reorderList.drop(3)
-                                customCategories = customOnly
-                                saveCustomCategories(context, customOnly)
+                                categoryManager.reorderCategories(customOnly)
                                 showCategoryManagePage = false
                                 MessageManager.showToast(context, "排序已保存")
                             },
@@ -1385,6 +1530,7 @@ private fun MultiSelectBottomItem(
 private suspend fun handleSelectedFile(
     context: Context,
     uri: Uri,
+    dbMiddleware: VaultDatabaseMiddleware,
     onSuccess: (VaultFile) -> Unit
 ) {
     try {
@@ -1399,8 +1545,19 @@ private suspend fun handleSelectedFile(
             FileType.VIDEO
         }
         
-        // 创建加密后的文件名（添加 .zip 后缀）
-        val encryptedName = "$originalName.zip"
+        // 提取逻辑文件名和扩展名
+        val extension = originalName.substringAfterLast('.', "")
+        val nameWithoutExt = originalName.substringBeforeLast('.')
+        
+        // 生成UID（作为物理文件名）
+        val uid = if (fileType == FileType.IMAGE) {
+            dbMiddleware.generatePictureUid()
+        } else {
+            dbMiddleware.generateVideoUid()
+        }
+        
+        // 物理文件名：uid.tb
+        val physicalFileName = "$uid.tb"
         
         // 获取私有目录
         val vaultDir = File(context.filesDir, "vault")
@@ -1408,8 +1565,8 @@ private suspend fun handleSelectedFile(
             vaultDir.mkdirs()
         }
         
-        // 目标文件路径
-        val destFile = File(vaultDir, encryptedName)
+        // 目标文件路径（使用物理文件名）
+        val destFile = File(vaultDir, physicalFileName)
         
         // 复制文件到私有目录
         context.contentResolver.openInputStream(uri)?.use { input ->
@@ -1434,11 +1591,21 @@ private suspend fun handleSelectedFile(
                 e.printStackTrace()
             }
             
+            // 保存资源到数据库
+            val resourceUid = dbMiddleware.addResource(
+                originalName = nameWithoutExt,
+                extension = if (extension.isNotEmpty()) ".${extension}" else "",
+                filePath = destFile.absolutePath,
+                fileType = fileType.name,
+                fileSize = destFile.length()
+            )
+            android.util.Log.d("VaultScreen", "✅ 新资源已保存到数据库: uid=$resourceUid, originalName=$nameWithoutExt$extension, path=${destFile.absolutePath}")
+            
             // 创建 VaultFile 对象
             val vaultFile = VaultFile(
                 id = System.currentTimeMillis(),
-                originalName = originalName,
-                encryptedName = encryptedName,
+                originalName = originalName,  // 用户看到的完整文件名
+                encryptedName = physicalFileName,  // 物理文件名
                 filePath = destFile.absolutePath,
                 fileType = fileType,
                 tags = emptyList(),
@@ -1504,17 +1671,35 @@ private fun previewFile(context: Context, file: VaultFile) {
 private suspend fun exportSelectedFiles(
     context: Context,
     files: List<VaultFile>,
-    targetDirUri: Uri
+    targetDirUri: Uri,
+    dbMiddleware: VaultDatabaseMiddleware? = null
 ) {
     for (file in files) {
         try {
-            // 恢复原始文件名（去掉 .zip 后缀）
-            val originalFileName = file.originalName
+            // 按元数据恢复完整文件名
+            val fullFileName = if (dbMiddleware != null) {
+                val resourceUid = dbMiddleware.getResourceByPath(file.filePath)
+                if (resourceUid != null) {
+                    val resources = dbMiddleware.getAllResources()
+                    val resource = resources.find { it["uid"] == resourceUid }
+                    if (resource != null) {
+                        val originalName = resource["originalName"] as String
+                        val extension = resource["extension"] as String
+                        "$originalName$extension"
+                    } else {
+                        file.originalName  // 降级处理
+                    }
+                } else {
+                    file.originalName  // 降级处理
+                }
+            } else {
+                file.originalName  // 兼容旧逻辑
+            }
             
             // 在目标目录创建文件
             val targetDocUri = DocumentFile.fromTreeUri(context, targetDirUri)
             val mimeType = if (file.fileType == FileType.IMAGE) "image/*" else "video/*"
-            val newFile = targetDocUri?.createFile(mimeType, originalFileName)
+            val newFile = targetDocUri?.createFile(mimeType, fullFileName)
             
             if (newFile != null) {
                 // 复制文件内容（从加密文件读取）
@@ -1607,6 +1792,12 @@ private fun loadVaultFiles(context: Context): List<VaultFile> {
     val count = prefs.getInt("file_count", 0)
     val files = mutableListOf<VaultFile>()
     
+    // 创建数据库中间件
+    val dbMiddleware = VaultDatabaseMiddleware(context)
+    
+    // 迁移旧数据（.zip文件）
+    migrateOldZipFiles(context, dbMiddleware)
+    
     for (i in 0 until count) {
         val id = prefs.getLong("file_${i}_id", 0)
         val originalName = prefs.getString("file_${i}_original", "") ?: ""
@@ -1624,6 +1815,19 @@ private fun loadVaultFiles(context: Context): List<VaultFile> {
         
         val tags = if (tagsStr.isNotEmpty()) tagsStr.split(",") else emptyList()
         
+        // 从数据库加载该资源的分类
+        val categories = try {
+            val resourceUid = dbMiddleware.getResourceByPath(filePath)
+            if (resourceUid != null) {
+                dbMiddleware.getCategoryNamesByResource(resourceUid)
+            } else {
+                emptyList()
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("VaultScreen", "❌ 加载分类失败: ${e.message}")
+            emptyList()
+        }
+        
         if (id != 0L && filePath.isNotEmpty()) {
             files.add(
                 VaultFile(
@@ -1633,6 +1837,7 @@ private fun loadVaultFiles(context: Context): List<VaultFile> {
                     filePath = filePath,
                     fileType = fileType,
                     tags = tags,
+                    categories = categories,  // 从数据库加载的分类
                     addedTime = addedTime
                 )
             )
@@ -1640,6 +1845,70 @@ private fun loadVaultFiles(context: Context): List<VaultFile> {
     }
     
     return files
+}
+
+/**
+ * 迁移旧的.zip文件到新架构（uid.tb）
+ */
+private fun migrateOldZipFiles(context: Context, dbMiddleware: VaultDatabaseMiddleware) {
+    val vaultDir = File(context.filesDir, "vault")
+    if (!vaultDir.exists()) return
+    
+    val zipFiles = vaultDir.listFiles { file -> file.name.endsWith(".zip") }
+    if (zipFiles.isNullOrEmpty()) {
+        android.util.Log.d("VaultScreen", "✅ 没有需要迁移的.zip文件")
+        return
+    }
+    
+    android.util.Log.d("VaultScreen", "🔄 开始迁移${zipFiles.size}个.zip文件...")
+    
+    var migratedCount = 0
+    zipFiles.forEach { zipFile ->
+        try {
+            // 提取原始文件名（去掉.zip后缀）
+            val originalName = zipFile.name.removeSuffix(".zip")
+            
+            // 确定文件类型
+            val mimeType = context.contentResolver.getType(android.net.Uri.fromFile(zipFile))
+            val fileType = if (mimeType?.startsWith("image/") == true) "IMAGE" else "VIDEO"
+            
+            // 生成新UID
+            val uid = if (fileType == "IMAGE") {
+                dbMiddleware.generatePictureUid()
+            } else {
+                dbMiddleware.generateVideoUid()
+            }
+            
+            // 新物理文件名
+            val newFileName = "$uid.tb"
+            val newFile = File(vaultDir, newFileName)
+            
+            // 重命名文件
+            if (zipFile.renameTo(newFile)) {
+                // 添加到数据库
+                val extension = originalName.substringAfterLast('.', "")
+                val nameWithoutExt = originalName.substringBeforeLast('.')
+                
+                dbMiddleware.addResource(
+                    originalName = nameWithoutExt,
+                    extension = if (extension.isNotEmpty()) ".${extension}" else "",
+                    filePath = newFile.absolutePath,
+                    fileType = fileType,
+                    fileSize = newFile.length()
+                )
+                
+                android.util.Log.d("VaultScreen", "✅ 迁移成功: $originalName.zip -> $newFileName")
+                migratedCount++
+            } else {
+                android.util.Log.e("VaultScreen", "❌ 迁移失败: ${zipFile.name}")
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("VaultScreen", "❌ 迁移异常: ${zipFile.name}, ${e.message}")
+            e.printStackTrace()
+        }
+    }
+    
+    android.util.Log.d("VaultScreen", "✅ 迁移完成: $migratedCount/${zipFiles.size}个文件")
 }
 
 /**
@@ -1793,36 +2062,32 @@ private suspend fun moveFilesToPublic(
 }
 
 /**
- * 重命名单个文件
+ * 重命名单个文件（新架构：只修改数据库，不移动文件）
  */
 private suspend fun renameSingleFile(
     context: Context,
     file: VaultFile,
-    newFullName: String
+    newFullName: String,
+    dbMiddleware: VaultDatabaseMiddleware? = null
 ): VaultFile? {
     return try {
-        val vaultDir = File(context.filesDir, "vault")
-        val oldFilePath = file.filePath
+        // 提取逻辑名和扩展名
+        val extension = newFullName.substringAfterLast('.', "")
+        val nameWithoutExt = newFullName.substringBeforeLast('.')
         
-        // 新文件名（添加.zip后缀）
-        val newEncryptedName = "$newFullName.zip"
-        val newFilePath = File(vaultDir, newEncryptedName).absolutePath
-        
-        // 重命名文件
-        val oldFile = File(oldFilePath)
-        val newFile = File(newFilePath)
-        if (oldFile.exists()) {
-            oldFile.renameTo(newFile)
-            
-            // 返回新的VaultFile对象
-            file.copy(
-                originalName = newFullName,
-                encryptedName = newEncryptedName,
-                filePath = newFilePath
-            )
-        } else {
-            null
+        // 更新数据库中的资源记录（只改逻辑名）
+        if (dbMiddleware != null) {
+            val resourceUid = dbMiddleware.getResourceByPath(file.filePath)
+            if (resourceUid != null) {
+                dbMiddleware.renameResource(resourceUid, nameWithoutExt)
+                android.util.Log.d("VaultScreen", "✅ 重命名成功: $nameWithoutExt.$extension")
+            }
         }
+        
+        // 返回新的VaultFile对象（物理路径不变）
+        file.copy(
+            originalName = newFullName
+        )
     } catch (e: Exception) {
         e.printStackTrace()
         null
@@ -1877,38 +2142,39 @@ private fun applyRenameTemplate(
 }
 
 /**
- * 执行批量重命名
+ * 执行批量重命名（新架构：只修改数据库，不移动文件）
  */
 private suspend fun executeBatchRename(
     context: Context,
     files: List<VaultFile>,
-    template: String
+    template: String,
+    dbMiddleware: VaultDatabaseMiddleware? = null
 ): List<VaultFile> {
-    val vaultDir = File(context.filesDir, "vault")
     val renamedFiles = mutableListOf<VaultFile>()
     
     for ((index, file) in files.withIndex()) {
         try {
-            val oldFilePath = file.filePath
             val newFullName = applyRenameTemplate(file.originalName, template, index)
-            val newEncryptedName = "$newFullName.zip"
-            val newFilePath = File(vaultDir, newEncryptedName).absolutePath
             
-            // 重命名文件
-            val oldFile = File(oldFilePath)
-            val newFile = File(newFilePath)
-            if (oldFile.exists()) {
-                oldFile.renameTo(newFile)
-                
-                // 创建新的VaultFile对象
-                renamedFiles.add(
-                    file.copy(
-                        originalName = newFullName,
-                        encryptedName = newEncryptedName,
-                        filePath = newFilePath
-                    )
-                )
+            // 提取逻辑名和扩展名
+            val extension = newFullName.substringAfterLast('.', "")
+            val nameWithoutExt = newFullName.substringBeforeLast('.')
+            
+            // 更新数据库中的资源记录
+            if (dbMiddleware != null) {
+                val resourceUid = dbMiddleware.getResourceByPath(file.filePath)
+                if (resourceUid != null) {
+                    dbMiddleware.renameResource(resourceUid, nameWithoutExt)
+                    android.util.Log.d("VaultScreen", "✅ 批量重命名: $nameWithoutExt.$extension")
+                }
             }
+            
+            // 创建新的VaultFile对象（物理路径不变）
+            renamedFiles.add(
+                file.copy(
+                    originalName = newFullName
+                )
+            )
         } catch (e: Exception) {
             e.printStackTrace()
             renamedFiles.add(file) // 失败时保留原文件

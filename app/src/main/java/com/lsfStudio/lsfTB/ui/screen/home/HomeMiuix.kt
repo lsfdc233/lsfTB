@@ -173,6 +173,10 @@ fun HomePagerMiuix(
                             content = "Release"
                         )
                         InfoText(
+                            title = "构建时间",
+                            content = com.lsfStudio.lsfTB.BuildConfig.BUILD_TIME
+                        )
+                        InfoText(
                             title = "UI 框架",
                             content = "Miuix + Jetpack Compose",
                             bottomPadding = 0.dp

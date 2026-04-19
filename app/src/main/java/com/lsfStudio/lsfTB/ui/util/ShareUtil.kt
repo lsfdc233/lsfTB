@@ -8,7 +8,7 @@ import java.io.File
 
 object ShareUtil {
     
-    fun shareFile(context: Context, filePath: String, mimeType: String, originalFileName: String) {
+    fun shareFile(context: Context, filePath: String, mimeType: String, originalFileName: String, extension: String = "") {
         try {
             val sourceFile = File(filePath)
             
@@ -18,11 +18,11 @@ object ShareUtil {
                 return
             }
             
-            // 创建临时文件（去掉.zip后缀）
-            val tempFileName = if (originalFileName.endsWith(".zip")) {
-                originalFileName.removeSuffix(".zip")
+            // 按元数据生成临时文件名
+            val tempFileName = if (extension.isNotEmpty()) {
+                "$originalFileName$extension"  // 例如：photo.jpg
             } else {
-                originalFileName
+                originalFileName  // 兼容旧逻辑
             }
             
             val tempDir = File(context.cacheDir, "share_temp")
