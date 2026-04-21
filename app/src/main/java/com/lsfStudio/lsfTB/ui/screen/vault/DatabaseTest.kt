@@ -88,8 +88,8 @@ object DatabaseTest {
     fun clearTestData(context: Context) {
         Log.d(TAG, "🗑️ 清空测试数据...")
         try {
-            val dbHelper = VaultDatabaseHelper(context)
-            val db = dbHelper.writableDatabase
+            val dataBase = com.lsfStudio.lsfTB.ui.util.DataBase(context)
+            val db = dataBase.writableDatabase
             
             db.execSQL("DELETE FROM VaultResourceCategoryMap")
             db.execSQL("DELETE FROM VaultResources")

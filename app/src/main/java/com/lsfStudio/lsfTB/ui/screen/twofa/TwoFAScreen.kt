@@ -1594,46 +1594,45 @@ private fun isValidBase32(input: String): Boolean {
 }
 
 /**
- * 保存账户列表到 SharedPreferences
+ * 保存账户列表到数据库
  */
 private fun saveAccounts(context: Context, accounts: List<TFACodeAccount>) {
-    val prefs = context.getSharedPreferences("2fa_accounts", Context.MODE_PRIVATE)
-    val editor = prefs.edit()
+    val middleware = TwoFADatabaseMiddleware(context)
     
-    // 清除旧数据
-    editor.clear()
+    // 清空所有旧数据
+    middleware.clearAllAccounts()
     
-    // 保存账户数量
-    editor.putInt("account_count", accounts.size)
-    
-    // 保存每个账户
-    accounts.forEachIndexed { index, account ->
-        editor.putString("account_${index}_id", account.id)
-        editor.putString("account_${index}_name", account.name)
-        editor.putString("account_${index}_issuer", account.issuer)
-        editor.putString("account_${index}_secret", account.secret)
-        editor.putString("account_${index}_type", account.type.name)
-        editor.putLong("account_${index}_counter", account.counter)
+    // 逐个添加账户
+    accounts.forEach { account ->
+        middleware.addAccount(
+            id = account.id,
+            name = account.name,
+            issuer = account.issuer,
+            secret = account.secret,
+            type = account.type.name,
+            counter = account.counter
+        )
     }
     
-    editor.apply()
+    Log.d("TwoFAScreen", "✅ 已保存 ${accounts.size} 个账户到数据库")
 }
 
 /**
- * 从 SharedPreferences 加载账户列表
+ * 从数据库加载账户列表
  */
 private fun loadAccounts(context: Context): List<TFACodeAccount> {
-    val prefs = context.getSharedPreferences("2fa_accounts", Context.MODE_PRIVATE)
-    val count = prefs.getInt("account_count", 0)
+    val middleware = TwoFADatabaseMiddleware(context)
+    val accountMaps = middleware.getAllAccounts()
     val accounts = mutableListOf<TFACodeAccount>()
     
-    for (i in 0 until count) {
-        val id = prefs.getString("account_${i}_id", "") ?: ""
-        val name = prefs.getString("account_${i}_name", "") ?: ""
-        val issuer = prefs.getString("account_${i}_issuer", "") ?: ""
-        val secret = prefs.getString("account_${i}_secret", "") ?: ""
-        val typeStr = prefs.getString("account_${i}_type", "TOTP") ?: "TOTP"
-        val counter = prefs.getLong("account_${i}_counter", 0L)
+    accountMaps.forEach { map ->
+        val id = map["id"] as? String ?: return@forEach
+        val name = map["name"] as? String ?: ""
+        val issuer = map["issuer"] as? String ?: ""
+        val secret = map["secret"] as? String ?: ""
+        val typeStr = map["type"] as? String ?: "TOTP"
+        val counter = (map["counter"] as? Long) ?: 0L
+        
         val type = try {
             OtpType.valueOf(typeStr)
         } catch (e: Exception) {
@@ -1661,6 +1660,7 @@ private fun loadAccounts(context: Context): List<TFACodeAccount> {
         }
     }
     
+    Log.d("TwoFAScreen", "📖 已从数据库加载 ${accounts.size} 个账户")
     return accounts
 }
 

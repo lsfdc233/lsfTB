@@ -103,6 +103,34 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
+        // 🔧 OOBE 初始化（设备绑定验证）
+        try {
+            val oobeResult = com.lsfStudio.lsfTB.ui.util.OOBE.initialize(applicationContext)
+            if (!oobeResult) {
+                android.util.Log.w("MainActivity", "⚠️ OOBE 验证未通过")
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "❌ OOBE 初始化失败", e)
+        }
+        
+        // 🗄️ Vault数据库中间件初始化（确保表存在）
+        try {
+            val vaultMiddleware = com.lsfStudio.lsfTB.ui.screen.vault.VaultDatabaseMiddleware(applicationContext)
+            vaultMiddleware.initialize()
+            android.util.Log.d("MainActivity", "✅ Vault数据库中间件初始化完成")
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "❌ Vault数据库中间件初始化失败", e)
+        }
+        
+        // 🔐 2FA数据库中间件初始化（确保表存在）
+        try {
+            val twoFAMiddleware = com.lsfStudio.lsfTB.ui.screen.twofa.TwoFADatabaseMiddleware(applicationContext)
+            twoFAMiddleware.initialize()
+            android.util.Log.d("MainActivity", "✅ 2FA数据库中间件初始化完成")
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "❌ 2FA数据库中间件初始化失败", e)
+        }
+        
         // 🧪 数据库测试（仅调试模式，测试完成后请注释）
         // if (BuildConfig.DEBUG) {
         //     com.lsfStudio.lsfTB.ui.screen.vault.DatabaseTest.runTest(applicationContext)

@@ -25,3 +25,12 @@ Thumbs.db
 *.war
 *.ear
 .kotlin/
+
+# LSF Studio 编码对照表（安全敏感）
+lsf_encoding_table.txt
+app/src/main/assets/lsf_encoding_table.bin
+
+# 标识符生成脚本（包含敏感信息）
+generate_identifier.py
+generate_real_identifier.py
+identifier_formats.txt

@@ -2,6 +2,8 @@ package com.lsfStudio.lsfTB.ui.screen.about
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -42,17 +44,35 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.util.Log
+import android.widget.Toast
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.TextField
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import com.lsfStudio.lsfTB.R
 import com.lsfStudio.lsfTB.ui.component.dialog.ConfirmDialogMiuix
 import com.lsfStudio.lsfTB.ui.theme.LocalEnableBlur
 import com.lsfStudio.lsfTB.ui.util.BlurredBar
+import com.lsfStudio.lsfTB.ui.util.DataBase
+import com.lsfStudio.lsfTB.ui.util.LsfEncoder
+import com.lsfStudio.lsfTB.ui.util.OOBE
+import com.lsfStudio.lsfTB.ui.util.OobeSecurity
 import com.lsfStudio.lsfTB.ui.util.rememberBlurBackdrop
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.icon.MiuixIcons
@@ -62,6 +82,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 import top.yukonga.miuix.kmp.theme.miuixShape
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
+import top.yukonga.miuix.kmp.window.WindowDialog
 
 @Composable
 fun AboutScreenMiuix(
@@ -73,6 +94,13 @@ fun AboutScreenMiuix(
     val backdrop = rememberBlurBackdrop(enableBlur)
     val blurActive = backdrop != null
     val barColor = if (blurActive) Color.Transparent else colorScheme.surface
+    
+    // 连续点击计数器
+    var clickCount by remember { mutableStateOf(0) }
+    var lastClickTime by remember { mutableStateOf(0L) }
+    
+    // Debug 弹窗状态
+    var showDebugDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -211,7 +239,28 @@ fun AboutScreenMiuix(
                         )
                         Text(
                             text = state.versionName,
-                            fontSize = 14.sp
+                            fontSize = 14.sp,
+                            modifier = Modifier
+                                .clickable {
+                                    val currentTime = System.currentTimeMillis()
+                                    
+                                    // 如果距离上次点击超过2秒，重置计数
+                                    if (currentTime - lastClickTime > 2000) {
+                                        clickCount = 0
+                                    }
+                                    
+                                    clickCount++
+                                    lastClickTime = currentTime
+                                    
+                                    Log.d("AboutMiuix", "版本号点击次数: $clickCount")
+                                    
+                                    // 连续点击5次触发 Debug 弹窗
+                                    if (clickCount >= 5) {
+                                        showDebugDialog = true
+                                        clickCount = 0
+                                        Log.d("AboutMiuix", "🔧 触发 Debug 模式")
+                                    }
+                                }
                         )
                     }
                 }
@@ -252,5 +301,107 @@ fun AboutScreenMiuix(
                 }
             }
         }
+    }
+    
+    // Debug 弹窗 - 设备标识符验证
+    if (showDebugDialog) {
+        val context = androidx.compose.ui.platform.LocalContext.current
+        var userInput by remember { mutableStateOf("") }
+        
+        WindowDialog(
+            show = true,
+            modifier = Modifier.padding(WindowInsets.systemBars.only(WindowInsetsSides.Top).asPaddingValues()),
+            title = "🔧 Debug 模式",
+            onDismissRequest = {
+                showDebugDialog = false
+            },
+            content = {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        text = "请输入设备标识符进行验证\n（支持噪声格式：!内容^ 或 (内容)）",
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+                    
+                    TextField(
+                        value = userInput,
+                        onValueChange = { userInput = it },
+                        label = { Text("设备标识符") },
+                        placeholder = { Text("例如: a1b2c3d4e5... 或 a(!noise^)1b2...") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp),
+                        singleLine = false,
+                        maxLines = 5,
+                        keyboardOptions = KeyboardOptions.Default
+                    )
+                    
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        TextButton(
+                            text = "取消",
+                            onClick = {
+                                showDebugDialog = false
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        TextButton(
+                            text = "验证",
+                            onClick = {
+                                if (userInput.isNotBlank()) {
+                                    try {
+                                        // 检查编码表是否可用
+                                        val encoder = LsfEncoder(context)
+                                        if (!encoder.ensureTableLoaded()) {
+                                            Toast.makeText(context, "⚠️ 编码表不可用，无法验证", Toast.LENGTH_LONG).show()
+                                            Log.w("AboutMiuix", "⚠️ 编码表不可用")
+                                            showDebugDialog = false
+                                            return@TextButton
+                                        }
+                                        
+                                        val dataBase = DataBase(context)
+                                        val storedIdentifierBytes = dataBase.getMetadataBinary(OOBE.KEY_DEVICE_ID)
+                                        
+                                        if (storedIdentifierBytes != null && storedIdentifierBytes.isNotEmpty()) {
+                                            val storedBinary = String(storedIdentifierBytes, Charsets.UTF_8)
+                                            
+                                            val isMatch = OobeSecurity.verifyUserInput(
+                                                context = context,
+                                                userInput = userInput,
+                                                storedBinary = storedBinary
+                                            )
+                                            
+                                            if (isMatch) {
+                                                Toast.makeText(context, "✅ 验证通过！", Toast.LENGTH_LONG).show()
+                                                Log.d("AboutMiuix", "✅ 设备标识符验证通过")
+                                            } else {
+                                                Toast.makeText(context, "❌ 验证失败：标识符不匹配", Toast.LENGTH_LONG).show()
+                                                Log.w("AboutMiuix", "❌ 设备标识符验证失败")
+                                            }
+                                        } else {
+                                            Toast.makeText(context, "⚠️ 数据库中未找到设备标识符", Toast.LENGTH_LONG).show()
+                                            Log.w("AboutMiuix", "⚠️ 数据库中未找到设备标识符")
+                                        }
+                                    } catch (e: Exception) {
+                                        Toast.makeText(context, "❌ 验证错误: ${e.message}", Toast.LENGTH_LONG).show()
+                                        Log.e("AboutMiuix", "❌ 验证错误", e)
+                                    }
+                                } else {
+                                    Toast.makeText(context, "⚠️ 请输入标识符", Toast.LENGTH_SHORT).show()
+                                }
+                                showDebugDialog = false
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.textButtonColorsPrimary()
+                        )
+                    }
+                }
+            }
+        )
     }
 }
