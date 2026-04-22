@@ -15,14 +15,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.QrCode
-import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.SelectAll
 import androidx.compose.material.icons.rounded.CheckBox
 import androidx.compose.material.icons.rounded.CheckBoxOutlineBlank
+import androidx.compose.material.icons.rounded.QrCode
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,7 +32,12 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import kotlinx.coroutines.delay
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.extended.Add
+import top.yukonga.miuix.kmp.icon.extended.Close
+import top.yukonga.miuix.kmp.icon.extended.Delete
+import top.yukonga.miuix.kmp.icon.extended.Edit
 import top.yukonga.miuix.kmp.icon.extended.MoreCircle
+import top.yukonga.miuix.kmp.icon.extended.SelectAll
 import top.yukonga.miuix.kmp.icon.extended.UploadCloud
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
@@ -267,7 +267,7 @@ fun TwoFAScreen(
                             }
                         ) {
                             Icon(
-                                Icons.Rounded.Close,
+                                MiuixIcons.Close,
                                 "关闭",
                                 tint = colorScheme.onSurface,
                                 modifier = Modifier.size(28.dp)
@@ -294,7 +294,7 @@ fun TwoFAScreen(
                             }
                         ) {
                             Icon(
-                                Icons.Rounded.SelectAll,
+                                MiuixIcons.SelectAll,
                                 "全选",
                                 tint = colorScheme.onSurface,
                                 modifier = Modifier.size(28.dp)
@@ -357,7 +357,7 @@ fun TwoFAScreen(
                     },
                     content = {
                         Icon(
-                            Icons.Rounded.Add,
+                            MiuixIcons.Add,
                             "添加认证",
                             modifier = Modifier.size(40.dp),
                             tint = colorScheme.onPrimary
@@ -582,7 +582,7 @@ fun TwoFAScreen(
                                 .weight(1f)
                                 .height(56.dp)
                         ) {
-                            Icon(Icons.Rounded.Edit, null, modifier = Modifier.size(24.dp))
+                            Icon(MiuixIcons.Edit, null, modifier = Modifier.size(24.dp))
                             Spacer(Modifier.width(8.dp))
                             Text("手动输入", fontSize = 16.sp)
                         }
@@ -1199,7 +1199,7 @@ fun TFACodeAccountItem(
                     if (account.type == OtpType.HOTP) {
                         IconButton(onClick = onGenerateHOTP) {
                             Icon(
-                                Icons.Rounded.Add,
+                                MiuixIcons.Add,
                                 "生成新验证码",
                                 tint = colorScheme.primary
                             )
@@ -1208,7 +1208,7 @@ fun TFACodeAccountItem(
                     // 编辑按钮
                     IconButton(onClick = onEdit) {
                         Icon(
-                            Icons.Rounded.Edit,
+                            MiuixIcons.Edit,
                             "编辑",
                             tint = colorScheme.onSurface
                         )
@@ -1216,7 +1216,7 @@ fun TFACodeAccountItem(
                     // 删除按钮
                     IconButton(onClick = onDelete) {
                         Icon(
-                            Icons.Rounded.Delete,
+                            MiuixIcons.Delete,
                             "删除",
                             tint = colorScheme.onSurface
                         )

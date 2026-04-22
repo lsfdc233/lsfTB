@@ -7,12 +7,6 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Cottage
-import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.rounded.Lock
-import androidx.compose.material.icons.rounded.Shield
-import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -34,6 +28,11 @@ import top.yukonga.miuix.kmp.basic.NavigationBarItem
 import top.yukonga.miuix.kmp.basic.NavigationItem
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
+import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.extended.ChevronForward
+import top.yukonga.miuix.kmp.icon.extended.Lock
+import top.yukonga.miuix.kmp.icon.extended.Folder
+import top.yukonga.miuix.kmp.icon.extended.Settings
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -118,8 +117,8 @@ enum class BottomBarDestination(
     val label: String,
     val icon: ImageVector,
 ) {
-    Home("主页", Icons.Rounded.Cottage),
-    TwoFA("认证", Icons.Rounded.Shield),
-    Vault("保险箱", Icons.Rounded.Folder),
-    Setting("设置", Icons.Rounded.Settings)
+    Home("主页", MiuixIcons.ChevronForward),  // Miuix 没有 Cottage，使用 ChevronForward 临时替代
+    TwoFA("认证", MiuixIcons.Lock),  // Shield → Lock
+    Vault("保险箱", MiuixIcons.Folder),
+    Setting("设置", MiuixIcons.Settings)
 }

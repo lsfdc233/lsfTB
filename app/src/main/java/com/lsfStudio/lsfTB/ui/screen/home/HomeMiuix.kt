@@ -16,9 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.Info
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,6 +46,8 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.extended.Info
+import top.yukonga.miuix.kmp.icon.extended.Ok
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
@@ -109,7 +108,7 @@ fun HomePagerMiuix(
                             modifier = Modifier.weight(1f)
                         ) {
                             Icon(
-                                imageVector = if (isShizukuConnected.value) Icons.Rounded.CheckCircle else Icons.Rounded.Info,
+                                imageVector = if (isShizukuConnected.value) MiuixIcons.Ok else MiuixIcons.Info,
                                 contentDescription = if (isShizukuConnected.value) "已连接" else "未连接",
                                 modifier = Modifier.size(40.dp),
                                 tint = if (isShizukuConnected.value) colorScheme.primary else colorScheme.onSurfaceVariantSummary
@@ -196,7 +195,7 @@ fun HomePagerMiuix(
                         summary = "查看应用信息和版本详情",
                         startAction = {
                             Icon(
-                                Icons.Rounded.Info,
+                                MiuixIcons.Info,
                                 "关于",
                                 modifier = Modifier.padding(end = 16.dp),
                                 tint = colorScheme.onBackground,
