@@ -12,6 +12,7 @@
 package com.lsfStudio.lsfTB.ui
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -103,12 +104,36 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // 🔧 OOBE 初始化（设备绑定验证）
+        // 🔧 OOBE 初始化（设备绑定验证）- 可选功能
         try {
-            val oobeResult = com.lsfStudio.lsfTB.ui.util.OOBE.initialize(applicationContext)
-            if (!oobeResult) {
+            val oobeClass = Class.forName("com.lsfStudio.lsfTB.ui.util.OOBE")
+            val initializeMethod = oobeClass.getMethod("initialize", Context::class.java)
+            val oobeResult = initializeMethod.invoke(null, applicationContext) as Boolean
+            
+            if (oobeResult) {
+                android.util.Log.d("MainActivity", "✅ OOBE 初始化完成")
+                
+                // OOBE 完成后，调用 OOBESecurity 生成并存储设备标识符
+                try {
+                    val oobeSecurityClass = Class.forName("com.lsfStudio.lsfTB.ui.util.OOBESecurity")
+                    val generateMethod = oobeSecurityClass.getMethod("generateAndStoreDeviceIdentifier", Context::class.java)
+                    val securityResult = generateMethod.invoke(null, applicationContext) as Boolean
+                    
+                    if (securityResult) {
+                        android.util.Log.d("MainActivity", "✅ 设备标识符生成并存储成功")
+                    } else {
+                        android.util.Log.w("MainActivity", "⚠️ 设备标识符生成失败（可能编码表不可用）")
+                    }
+                } catch (e: ClassNotFoundException) {
+                    android.util.Log.d("MainActivity", "ℹ️ OOBESecurity 模块不可用")
+                } catch (e: Exception) {
+                    android.util.Log.e("MainActivity", "❌ 调用 OOBESecurity 失败", e)
+                }
+            } else {
                 android.util.Log.w("MainActivity", "⚠️ OOBE 验证未通过")
             }
+        } catch (e: ClassNotFoundException) {
+            android.util.Log.d("MainActivity", "ℹ️ OOBE 模块不可用（编码表文件缺失）")
         } catch (e: Exception) {
             android.util.Log.e("MainActivity", "❌ OOBE 初始化失败", e)
         }

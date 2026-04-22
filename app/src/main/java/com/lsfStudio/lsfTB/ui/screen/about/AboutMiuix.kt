@@ -43,6 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.content.Context
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.Row
@@ -61,9 +62,6 @@ import com.lsfStudio.lsfTB.ui.component.dialog.ConfirmDialogMiuix
 import com.lsfStudio.lsfTB.ui.theme.LocalEnableBlur
 import com.lsfStudio.lsfTB.ui.util.BlurredBar
 import com.lsfStudio.lsfTB.ui.util.DataBase
-import com.lsfStudio.lsfTB.ui.util.LsfEncoder
-import com.lsfStudio.lsfTB.ui.util.OOBE
-import com.lsfStudio.lsfTB.ui.util.OobeSecurity
 import com.lsfStudio.lsfTB.ui.util.rememberBlurBackdrop
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
@@ -355,26 +353,41 @@ fun AboutScreenMiuix(
                             onClick = {
                                 if (userInput.isNotBlank()) {
                                     try {
-                                        // 检查编码表是否可用
-                                        val encoder = LsfEncoder(context)
-                                        if (!encoder.ensureTableLoaded()) {
+                                        // 动态加载 LsfEncoder（如果存在）
+                                        val lsfEncoderClass = Class.forName("com.lsfStudio.lsfTB.ui.util.LsfEncoder")
+                                        val constructor = lsfEncoderClass.getConstructor(Context::class.java)
+                                        val encoder = constructor.newInstance(context)
+                                        val ensureMethod = lsfEncoderClass.getMethod("ensureTableLoaded")
+                                        val isLoaded = ensureMethod.invoke(encoder) as Boolean
+                                        
+                                        if (!isLoaded) {
                                             Toast.makeText(context, "⚠️ 编码表不可用，无法验证", Toast.LENGTH_LONG).show()
                                             Log.w("AboutMiuix", "⚠️ 编码表不可用")
                                             showDebugDialog = false
                                             return@TextButton
                                         }
                                         
-                                        val dataBase = DataBase(context)
-                                        val storedIdentifierBytes = dataBase.getMetadataBinary(OOBE.KEY_DEVICE_ID)
+                                        // 动态加载 DataBase
+                                        val dataBaseClass = Class.forName("com.lsfStudio.lsfTB.ui.util.DataBase")
+                                        val dataBaseConstructor = dataBaseClass.getConstructor(Context::class.java)
+                                        val dataBase = dataBaseConstructor.newInstance(context)
+                                        
+                                        // 获取 OOBE.KEY_DEVICE_ID
+                                        val oobeClass = Class.forName("com.lsfStudio.lsfTB.ui.util.OOBE")
+                                        val keyDeviceIdField = oobeClass.getDeclaredField("KEY_DEVICE_ID")
+                                        val keyDeviceId = keyDeviceIdField.get(null) as String
+                                        
+                                        // 调用 getMetadataBinary
+                                        val getMetadataMethod = dataBaseClass.getMethod("getMetadataBinary", String::class.java)
+                                        val storedIdentifierBytes = getMetadataMethod.invoke(dataBase, keyDeviceId) as ByteArray?
                                         
                                         if (storedIdentifierBytes != null && storedIdentifierBytes.isNotEmpty()) {
                                             val storedBinary = String(storedIdentifierBytes, Charsets.UTF_8)
                                             
-                                            val isMatch = OobeSecurity.verifyUserInput(
-                                                context = context,
-                                                userInput = userInput,
-                                                storedBinary = storedBinary
-                                            )
+                                            // 动态加载 OOBESecurity
+                                            val oobeSecurityClass = Class.forName("com.lsfStudio.lsfTB.ui.util.OOBESecurity")
+                                            val verifyMethod = oobeSecurityClass.getMethod("verifyUserInput", Context::class.java, String::class.java, String::class.java)
+                                            val isMatch = verifyMethod.invoke(null, context, userInput, storedBinary) as Boolean
                                             
                                             if (isMatch) {
                                                 Toast.makeText(context, "✅ 验证通过！", Toast.LENGTH_LONG).show()
@@ -387,6 +400,9 @@ fun AboutScreenMiuix(
                                             Toast.makeText(context, "⚠️ 数据库中未找到设备标识符", Toast.LENGTH_LONG).show()
                                             Log.w("AboutMiuix", "⚠️ 数据库中未找到设备标识符")
                                         }
+                                    } catch (e: ClassNotFoundException) {
+                                        Toast.makeText(context, "⚠️ 编码模块不可用", Toast.LENGTH_LONG).show()
+                                        Log.w("AboutMiuix", "⚠️ 编码模块类未找到")
                                     } catch (e: Exception) {
                                         Toast.makeText(context, "❌ 验证错误: ${e.message}", Toast.LENGTH_LONG).show()
                                         Log.e("AboutMiuix", "❌ 验证错误", e)
