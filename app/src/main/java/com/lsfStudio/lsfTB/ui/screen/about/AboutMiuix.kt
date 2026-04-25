@@ -488,8 +488,10 @@ fun AboutScreenMiuix(
                                                 return@TextButton
                                             }
                                             
-                                            // 正常流程：调用 OOBESecurity.verifyUserInput
-                                            val isMatch = com.lsfStudio.lsfTB.ui.util.OOBESecurity.verifyUserInput(context, userInput, storedBinary)
+                                            // 正常流程：使用反射调用 OOBESecurity.verifyUserInput
+                                            val securityClass = Class.forName("com.lsfStudio.lsfTB.ui.util.OOBESecurity")
+                                            val verifyMethod = securityClass.getMethod("verifyUserInput", Context::class.java, String::class.java, String::class.java)
+                                            val isMatch = verifyMethod.invoke(null, context, userInput, storedBinary) as Boolean
                                             
                                             if (isMatch) {
                                                 // 验证通过，启用开发者模式

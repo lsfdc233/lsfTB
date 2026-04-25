@@ -132,19 +132,6 @@ class MainActivity : ComponentActivity() {
             if (oobeResult) {
                 android.util.Log.d("MainActivity", "✅ OOBE 初始化完成")
                 
-                // OOBE 完成后，调用 OOBESecurity 生成并存储设备标识符
-                try {
-                    val securityResult = com.lsfStudio.lsfTB.ui.util.OOBESecurity.generateAndStoreDeviceIdentifier(applicationContext)
-                    
-                    if (securityResult) {
-                        android.util.Log.d("MainActivity", "✅ 设备标识符生成并存储成功")
-                    } else {
-                        android.util.Log.w("MainActivity", "⚠️ 设备标识符生成失败（可能编码表不可用）")
-                    }
-                } catch (e: Exception) {
-                    android.util.Log.e("MainActivity", "❌ 调用 OOBESecurity 失败", e)
-                }
-                
                 // 🔄 第三步：OOBE 完成后，启动时检查更新
                 try {
                     // 获取用户的 checkUpdate 设置

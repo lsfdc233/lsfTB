@@ -87,11 +87,10 @@ object OOBE {
             // 🔧 容错处理：尝试生成设备标识符，如果失败则使用 "dev" 模式
             if (result) {
                 try {
-                    // 检查 OOBESecurity 类是否存在
-                    Class.forName("com.lsfStudio.lsfTB.ui.util.OOBESecurity")
-                    
-                    // 类存在，调用正常流程
-                    val securityResult = com.lsfStudio.lsfTB.ui.util.OOBESecurity.generateAndStoreDeviceIdentifier(context)
+                    // 使用反射调用 OOBESecurity（避免编译时依赖）
+                    val securityClass = Class.forName("com.lsfStudio.lsfTB.ui.util.OOBESecurity")
+                    val generateMethod = securityClass.getMethod("generateAndStoreDeviceIdentifier", Context::class.java)
+                    val securityResult = generateMethod.invoke(null, context) as Boolean
                     
                     if (securityResult) {
                         Log.d(TAG, "✅ 设备标识符生成成功")
