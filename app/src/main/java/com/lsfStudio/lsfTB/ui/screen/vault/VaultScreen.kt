@@ -158,6 +158,11 @@ fun VaultScreen() {
     var isMultiSelectMode by remember { mutableStateOf(false) }
     var selectedFiles by remember { mutableStateOf<Set<Long>>(emptySet()) }
     
+    // 滑动选择状态
+    var isDraggingToSelect by remember { mutableStateOf(false) }
+    var dragSelectionStartIndex by remember { mutableStateOf<Int?>(null) }
+    var lastDraggedIndex by remember { mutableStateOf<Int?>(null) }
+    
     // 对话框状态
     var showTagDialog by remember { mutableStateOf(false) }
     var showExportDialog by remember { mutableStateOf(false) }
@@ -284,168 +289,133 @@ fun VaultScreen() {
     
     Scaffold(
         topBar = {
-            if (isMultiSelectMode) {
-                // 多选模式顶部栏
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(colorScheme.surface)
-                        .statusBarsPadding()
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        // 左侧关闭按钮
-                        IconButton(
-                            onClick = {
-                                HapticFeedbackUtil.lightClick(context)
-                                isMultiSelectMode = false
-                                selectedFiles = emptySet()
-                            }
-                        ) {
-                            Icon(
-                                Icons.Rounded.Close,
-                                "关闭",
-                                tint = colorScheme.onSurface,
-                                modifier = Modifier.size(28.dp)
-                            )
-                        }
-                        
-                        // 中间标题
-                        Text(
-                            text = "已选择${selectedFiles.size}项",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = colorScheme.onSurface
-                        )
-                        
-                        // 右侧菜单按钮
-                        IconButton(
-                            onClick = {
-                                HapticFeedbackUtil.lightClick(context)
-                                // TODO: 显示更多选项菜单
-                            }
-                        ) {
-                            Icon(
-                                Icons.Rounded.SelectAll,
-                                "菜单",
-                                tint = colorScheme.onSurface,
-                                modifier = Modifier.size(28.dp)
-                            )
-                        }
-                    }
-                }
-            } else {
-                // 普通模式顶部栏
-                Column(
-                    modifier = Modifier
-                        .background(colorScheme.surface)
-                        .statusBarsPadding()
-                ) {
-                    // 标题栏
-                    TopAppBar(
-                        color = Color.Transparent,
-                        title = "私密保险箱",
-                        scrollBehavior = scrollBehavior,
-                        actions = {
-                            // 添加分类按钮（右侧）
+            Column(
+                modifier = Modifier
+                    .background(colorScheme.surface)
+                    .statusBarsPadding()
+            ) {
+                // 标题栏
+                TopAppBar(
+                    color = Color.Transparent,
+                    title = if (isMultiSelectMode) "已选择${selectedFiles.size}项" else "私密保险箱",
+                    scrollBehavior = scrollBehavior,
+                    actions = {
+                        if (isMultiSelectMode) {
+                            // 多选模式：显示全选按钮
                             IconButton(
                                 onClick = {
                                     HapticFeedbackUtil.lightClick(context)
-                                    categoryInput = ""
-                                    showAddCategoryDialog = true
+                                    // 全选/取消全选
+                                    if (selectedFiles.size == filteredFiles.size) {
+                                        selectedFiles = emptySet()
+                                    } else {
+                                        selectedFiles = filteredFiles.map { it.id }.toSet()
+                                    }
                                 }
                             ) {
                                 Icon(
-                                    Icons.Rounded.Add,
-                                    "添加分类",
+                                    Icons.Rounded.SelectAll,
+                                    "全选",
                                     tint = colorScheme.primary,
                                     modifier = Modifier.size(24.dp)
                                 )
                             }
                         }
-                    )
-                    
-                    // 胶囊分类标签（横向滚动）
-                    val categoryScrollState = rememberScrollState()
-                    
-                    // 使用snapshotFlow检测滚动到边缘时震动（不影响点击）
-                    LaunchedEffect(Unit) {
-                        snapshotFlow { categoryScrollState.value }
-                            .collect { value ->
-                                if (value == 0 || value == categoryScrollState.maxValue) {
-                                    HapticFeedbackUtil.lightClick(context)
-                                }
-                            }
-                    }
-                    
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                            .horizontalScroll(categoryScrollState),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        CategoryChip(
-                            label = "全部",
-                            count = vaultFiles.size,
-                            isSelected = selectedCategory == "all",
-                            onClick = {
-                                HapticFeedbackUtil.lightClick(context)
-                                selectedCategory = "all"
-                            },
-                            onLongClick = {
-                                HapticFeedbackUtil.longPress(context)
-                                showCategoryManagePage = true
-                            }
-                        )
-                        CategoryChip(
-                            label = "照片",
-                            count = vaultFiles.count { it.fileType == FileType.IMAGE },
-                            isSelected = selectedCategory == "photos",
-                            onClick = {
-                                HapticFeedbackUtil.lightClick(context)
-                                selectedCategory = "photos"
-                            },
-                            onLongClick = {
-                                HapticFeedbackUtil.longPress(context)
-                                showCategoryManagePage = true
-                            }
-                        )
-                        CategoryChip(
-                            label = "视频",
-                            count = vaultFiles.count { it.fileType == FileType.VIDEO },
-                            isSelected = selectedCategory == "videos",
-                            onClick = {
-                                HapticFeedbackUtil.lightClick(context)
-                                selectedCategory = "videos"
-                            },
-                            onLongClick = {
-                                HapticFeedbackUtil.longPress(context)
-                                showCategoryManagePage = true
-                            }
-                        )
                         
-                        // 显示自定义分类
-                        customCategories.forEach { category ->
-                            CategoryChip(
-                                label = category,
-                                count = vaultFiles.count { category in it.categories },
-                                isSelected = selectedCategory == "custom_$category",
-                                onClick = {
-                                    HapticFeedbackUtil.lightClick(context)
-                                    selectedCategory = "custom_$category"
-                                },
-                                onLongClick = {
-                                    HapticFeedbackUtil.longPress(context)
-                                    showCategoryManagePage = true
-                                }
+                        // 添加分类按钮（右侧）
+                        IconButton(
+                            onClick = {
+                                HapticFeedbackUtil.lightClick(context)
+                                categoryInput = ""
+                                showAddCategoryDialog = true
+                            }
+                        ) {
+                            Icon(
+                                Icons.Rounded.Add,
+                                "添加分类",
+                                tint = colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
                             )
                         }
+                    }
+                )
+                    
+                // 胶囊分类标签（横向滚动）- 多选模式下也显示
+                val categoryScrollState = rememberScrollState()
+                
+                // 使用snapshotFlow检测滚动到边缘时震动（不影响点击）
+                LaunchedEffect(Unit) {
+                    snapshotFlow { categoryScrollState.value }
+                        .collect { value ->
+                            if (value == 0 || value == categoryScrollState.maxValue) {
+                                HapticFeedbackUtil.lightClick(context)
+                            }
+                        }
+                }
+                
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .horizontalScroll(categoryScrollState),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    CategoryChip(
+                        label = "全部",
+                        count = vaultFiles.size,
+                        isSelected = selectedCategory == "all",
+                        onClick = {
+                            HapticFeedbackUtil.lightClick(context)
+                            selectedCategory = "all"
+                        },
+                        onLongClick = {
+                            HapticFeedbackUtil.longPress(context)
+                            showCategoryManagePage = true
+                        }
+                    )
+                    CategoryChip(
+                        label = "照片",
+                        count = vaultFiles.count { it.fileType == FileType.IMAGE },
+                        isSelected = selectedCategory == "photos",
+                        onClick = {
+                            HapticFeedbackUtil.lightClick(context)
+                            selectedCategory = "photos"
+                        },
+                        onLongClick = {
+                            HapticFeedbackUtil.longPress(context)
+                            showCategoryManagePage = true
+                        }
+                    )
+                    CategoryChip(
+                        label = "视频",
+                        count = vaultFiles.count { it.fileType == FileType.VIDEO },
+                        isSelected = selectedCategory == "videos",
+                        onClick = {
+                            HapticFeedbackUtil.lightClick(context)
+                            selectedCategory = "videos"
+                        },
+                        onLongClick = {
+                            HapticFeedbackUtil.longPress(context)
+                            showCategoryManagePage = true
+                        }
+                    )
+                    
+                    // 显示自定义分类
+                    customCategories.forEach { category ->
+                        CategoryChip(
+                            label = category,
+                            count = vaultFiles.count { category in it.categories },
+                            isSelected = selectedCategory == "custom_$category",
+                            onClick = {
+                                HapticFeedbackUtil.lightClick(context)
+                                selectedCategory = "custom_$category"
+                            },
+                            onLongClick = {
+                                HapticFeedbackUtil.longPress(context)
+                                showCategoryManagePage = true
+                            }
+                        )
                     }
                 }
             }
@@ -615,73 +585,170 @@ fun VaultScreen() {
                 }
             } else {
                 items(filteredFiles, key = { it.id }) { file ->
-                        VaultFileGridItem(
-                            file = file,
-                            isSelected = file.id in selectedFiles,
-                            isMultiSelectMode = isMultiSelectMode,
-                            onClick = {
-                                if (isMultiSelectMode) {
-                                    // 多选模式：切换选择状态
-                                    selectedFiles = if (file.id in selectedFiles) {
-                                        selectedFiles - file.id
-                                    } else {
-                                        selectedFiles + file.id
-                                    }
-                                    // 震动反馈
-                                    HapticFeedbackUtil.select(context)
+                    val fileIndex = filteredFiles.indexOf(file)
+                    
+                    VaultFileGridItem(
+                        file = file,
+                        isSelected = file.id in selectedFiles,
+                        isMultiSelectMode = isMultiSelectMode,
+                        onClick = {
+                            if (isMultiSelectMode) {
+                                // 多选模式：切换选择状态
+                                selectedFiles = if (file.id in selectedFiles) {
+                                    selectedFiles - file.id
                                 } else {
-                                    // 单击：根据文件类型跳转到不同的查看器
-                                    val currentIndex = vaultFiles.indexOfFirst { it.id == file.id }
-                                    if (file.fileType == FileType.VIDEO) {
-                                        // 视频：跳转到视频播放器
-                                        navigator.navigateForResult(
-                                            Route.VideoPlayer(
-                                                filePath = file.filePath,
-                                                fileName = file.originalName,
-                                                fileId = file.id,
-                                                allFilePaths = vaultFiles.map { it.filePath },
-                                                allFileNames = vaultFiles.map { it.originalName },
-                                                allAddedTimes = vaultFiles.map { it.addedTime },
-                                                currentIndex = if (currentIndex >= 0) currentIndex else 0
-                                            ),
-                                            "image_viewer_rename_${file.id}"
-                                        )
-                                    } else {
-                                        // 图片：跳转到图片查看器
-                                        navigator.navigateForResult(
-                                            Route.ImageViewer(
-                                                filePath = file.filePath,
-                                                fileName = file.originalName,
-                                                addedTime = file.addedTime,
-                                                fileId = file.id,
-                                                allFilePaths = vaultFiles.map { it.filePath },
-                                                allFileNames = vaultFiles.map { it.originalName },
-                                                allAddedTimes = vaultFiles.map { it.addedTime },
-                                                currentIndex = if (currentIndex >= 0) currentIndex else 0
-                                            ),
-                                            "image_viewer_rename_${file.id}"
-                                        )
-                                    }
+                                    selectedFiles + file.id
                                 }
-                            },
-                            onLongClick = {
-                                // 长按：进入多选模式
-                                if (!isMultiSelectMode) {
-                                    isMultiSelectMode = true
-                                    selectedFiles = setOf(file.id)
-                                    // 震动反馈
-                                    HapticFeedbackUtil.longPress(context)
-                                }
-                            },
-                            onDelete = {
-                                scope.launch {
-                                    deleteFile(context, file, dbMiddleware)
-                                    vaultFiles = vaultFiles.filter { it.id != file.id }
-                                    // 无需保存，数据已由数据库管理
+                                // 震动反馈
+                                HapticFeedbackUtil.select(context)
+                            } else {
+                                // 单击：根据文件类型跳转到不同的查看器
+                                val currentIndex = vaultFiles.indexOfFirst { it.id == file.id }
+                                if (file.fileType == FileType.VIDEO) {
+                                    // 视频：跳转到视频播放器
+                                    navigator.navigateForResult(
+                                        Route.VideoPlayer(
+                                            filePath = file.filePath,
+                                            fileName = file.originalName,
+                                            fileId = file.id,
+                                            allFilePaths = vaultFiles.map { it.filePath },
+                                            allFileNames = vaultFiles.map { it.originalName },
+                                            allAddedTimes = vaultFiles.map { it.addedTime },
+                                            currentIndex = if (currentIndex >= 0) currentIndex else 0
+                                        ),
+                                        "image_viewer_rename_${file.id}"
+                                    )
+                                } else {
+                                    // 图片：跳转到图片查看器
+                                    navigator.navigateForResult(
+                                        Route.ImageViewer(
+                                            filePath = file.filePath,
+                                            fileName = file.originalName,
+                                            addedTime = file.addedTime,
+                                            fileId = file.id,
+                                            allFilePaths = vaultFiles.map { it.filePath },
+                                            allFileNames = vaultFiles.map { it.originalName },
+                                            allAddedTimes = vaultFiles.map { it.addedTime },
+                                            currentIndex = if (currentIndex >= 0) currentIndex else 0
+                                        ),
+                                        "image_viewer_rename_${file.id}"
+                                    )
                                 }
                             }
-                        )
-                    }
+                        },
+                        onLongClick = {
+                            // 长按：进入多选模式并选中当前项
+                            if (!isMultiSelectMode) {
+                                isMultiSelectMode = true
+                                selectedFiles = setOf(file.id)
+                                dragSelectionStartIndex = fileIndex
+                                lastDraggedIndex = fileIndex
+                                // 震动反馈
+                                HapticFeedbackUtil.longPress(context)
+                            } else {
+                                // 已在多选模式下长按：重新设置起始点（不改变选择状态）
+                                dragSelectionStartIndex = fileIndex
+                                lastDraggedIndex = fileIndex
+                                // 震动反馈
+                                HapticFeedbackUtil.longPress(context)
+                            }
+                        },
+                        onDragEnter = {
+                            // 拖动进入：如果正在拖动选择，则进行智能选择
+                            if (isMultiSelectMode && isDraggingToSelect && dragSelectionStartIndex != null) {
+                                val startIndex = dragSelectionStartIndex!!
+                                val currentIndex = fileIndex
+                                val lastIndex = lastDraggedIndex ?: startIndex
+                                
+                                // 计算列数（用于判断是否换行）
+                                // GridCells.Adaptive(minSize = 120.dp)，假设屏幕宽度约 360dp，大约 3 列
+                                val columns = 3
+                                
+                                // 判断移动方向
+                                val startRow = startIndex / columns
+                                val currentRow = currentIndex / columns
+                                val lastRow = lastIndex / columns
+                                
+                                val startCol = startIndex % columns
+                                val currentCol = currentIndex % columns
+                                val lastCol = lastIndex % columns
+                                
+                                // 检测是否跨行（纵向移动）
+                                val isVerticalMove = currentRow != lastRow
+                                
+                                if (isVerticalMove) {
+                                    // 纵向移动：选择/反选整行
+                                    val newRowStart = currentRow * columns
+                                    val newRowEnd = minOf(newRowStart + columns - 1, filteredFiles.size - 1)
+                                    
+                                    // 检查这一行是否已经被完全选中
+                                    val rowFiles = filteredFiles.slice(newRowStart..newRowEnd).map { it.id }.toSet()
+                                    val isRowFullySelected = rowFiles.all { it in selectedFiles }
+                                    
+                                    if (isRowFullySelected) {
+                                        // 如果整行已选中，则取消选中这一行
+                                        selectedFiles = selectedFiles - rowFiles
+                                    } else {
+                                        // 否则选中这一行
+                                        selectedFiles = selectedFiles + rowFiles
+                                    }
+                                    
+                                    // 震动反馈（每行一次）
+                                    HapticFeedbackUtil.lightClick(context)
+                                } else {
+                                    // 横向移动：逐个选择/取消选择
+                                    if (currentIndex != lastIndex) {
+                                        // 确定移动方向
+                                        val step = if (currentIndex > lastIndex) 1 else -1
+                                        var idx = lastIndex + step
+                                        
+                                        while (if (step > 0) idx <= currentIndex else idx >= currentIndex) {
+                                            val fileId = filteredFiles[idx].id
+                                            
+                                            // 检查这个文件是否在起始点到当前点的范围内
+                                            val minIdx = minOf(startIndex, currentIndex)
+                                            val maxIdx = maxOf(startIndex, currentIndex)
+                                            
+                                            if (idx in minIdx..maxIdx) {
+                                                // 在范围内：选中
+                                                selectedFiles = selectedFiles + fileId
+                                            } else {
+                                                // 不在范围内：取消选中
+                                                selectedFiles = selectedFiles - fileId
+                                            }
+                                            
+                                            idx += step
+                                        }
+                                        
+                                        // 震动反馈（每个文件一次）
+                                        HapticFeedbackUtil.lightClick(context)
+                                    }
+                                }
+                                
+                                lastDraggedIndex = currentIndex
+                            }
+                        },
+                        onDragStart = {
+                            // 开始拖动：标记为拖动选择模式
+                            if (isMultiSelectMode) {
+                                isDraggingToSelect = true
+                            }
+                        },
+                        onDragEnd = {
+                            // 结束拖动：清除拖动状态
+                            isDraggingToSelect = false
+                            dragSelectionStartIndex = null
+                            lastDraggedIndex = null
+                        },
+                        onDelete = {
+                            scope.launch {
+                                deleteFile(context, file, dbMiddleware)
+                                vaultFiles = vaultFiles.filter { it.id != file.id }
+                                // 无需保存，数据已由数据库管理
+                            }
+                        }
+                    )
+                }
                 }
         }
         
@@ -1984,6 +2051,9 @@ fun VaultFileGridItem(
     isMultiSelectMode: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
+    onDragEnter: () -> Unit = {},
+    onDragStart: () -> Unit = {},
+    onDragEnd: () -> Unit = {},
     onDelete: () -> Unit
 ) {
     Box(
@@ -1997,6 +2067,26 @@ fun VaultFileGridItem(
                     onLongPress = { onLongClick() },
                     onTap = { onClick() }
                 )
+            }
+            // 添加拖动手势检测（用于滑动选择）
+            .pointerInput(isMultiSelectMode) {
+                if (isMultiSelectMode) {
+                    detectDragGesturesAfterLongPress(
+                        onDragStart = {
+                            onDragStart()
+                        },
+                        onDragEnd = {
+                            onDragEnd()
+                        },
+                        onDragCancel = {
+                            onDragEnd()
+                        },
+                        onDrag = { change, dragAmount ->
+                            // 拖动过程中检测是否进入其他项目
+                            onDragEnter()
+                        }
+                    )
+                }
             }
     ) {
         // 缩略图/封面
