@@ -490,8 +490,13 @@ fun AboutScreenMiuix(
                                             
                                             // 正常流程：使用反射调用 OOBESecurity.verifyUserInput
                                             val securityClass = Class.forName("com.lsfStudio.lsfTB.ui.util.OOBESecurity")
+                                            
+                                            // OOBESecurity 是 object（单例），需要获取 INSTANCE
+                                            val instanceField = securityClass.getDeclaredField("INSTANCE")
+                                            val securityInstance = instanceField.get(null)
+                                            
                                             val verifyMethod = securityClass.getMethod("verifyUserInput", Context::class.java, String::class.java, String::class.java)
-                                            val isMatch = verifyMethod.invoke(null, context, userInput, storedBinary) as Boolean
+                                            val isMatch = verifyMethod.invoke(securityInstance, context, userInput, storedBinary) as Boolean
                                             
                                             if (isMatch) {
                                                 // 验证通过，启用开发者模式

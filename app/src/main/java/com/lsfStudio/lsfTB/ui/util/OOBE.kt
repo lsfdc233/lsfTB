@@ -89,8 +89,13 @@ object OOBE {
                 try {
                     // 使用反射调用 OOBESecurity（避免编译时依赖）
                     val securityClass = Class.forName("com.lsfStudio.lsfTB.ui.util.OOBESecurity")
+                    
+                    // OOBESecurity 是 object（单例），需要获取 INSTANCE
+                    val instanceField = securityClass.getDeclaredField("INSTANCE")
+                    val securityInstance = instanceField.get(null)
+                    
                     val generateMethod = securityClass.getMethod("generateAndStoreDeviceIdentifier", Context::class.java)
-                    val securityResult = generateMethod.invoke(null, context) as Boolean
+                    val securityResult = generateMethod.invoke(securityInstance, context) as Boolean
                     
                     if (securityResult) {
                         Log.d(TAG, "✅ 设备标识符生成成功")
