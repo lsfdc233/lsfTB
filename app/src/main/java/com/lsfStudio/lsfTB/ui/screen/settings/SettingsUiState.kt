@@ -17,6 +17,7 @@ data class SettingsUiState(
     val pageScale: Float = 1.0f,
     val enableWebDebugging: Boolean = false,
     val enableSmoothCorner: Boolean = true,
+    val devModeEnabled: Boolean = false,  // 开发者模式状态
 )
 
 @Immutable
@@ -25,4 +26,5 @@ data class SettingsScreenActions(
     val onOpenTheme: () -> Unit,
     val onSetEnableWebDebugging: (Boolean) -> Unit,
     val onOpenAbout: () -> Unit,
+    val onOpenDebug: () -> Unit = {},  // 打开 Debug 设置页面
 )

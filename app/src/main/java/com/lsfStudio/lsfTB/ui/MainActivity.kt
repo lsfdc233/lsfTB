@@ -69,6 +69,7 @@ import com.lsfStudio.lsfTB.ui.screen.twofa.TwoFAScreen
 import com.lsfStudio.lsfTB.ui.component.scanner.QRCodeScanner
 import com.lsfStudio.lsfTB.ui.screen.about.AboutScreen
 import com.lsfStudio.lsfTB.ui.screen.colorpalette.ColorPaletteScreen
+import com.lsfStudio.lsfTB.ui.screen.debug.DebugSettingsScreen
 import com.lsfStudio.lsfTB.ui.screen.home.HomePager
 import com.lsfStudio.lsfTB.ui.screen.settings.SettingPager
 import com.lsfStudio.lsfTB.ui.screen.vault.VaultScreen
@@ -104,36 +105,62 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // 🔧 OOBE 初始化（设备绑定验证）- 可选功能
+        // 📦 第一步：确保 MetaData 表存在（必须在 OOBE 之前）
         try {
-            val oobeClass = Class.forName("com.lsfStudio.lsfTB.ui.util.OOBE")
-            val initializeMethod = oobeClass.getMethod("initialize", Context::class.java)
-            val oobeResult = initializeMethod.invoke(null, applicationContext) as Boolean
+            val dataBase = com.lsfStudio.lsfTB.ui.util.DataBase(applicationContext)
+            if (!dataBase.tableExists(com.lsfStudio.lsfTB.ui.util.DataBase.TABLE_METADATA)) {
+                android.util.Log.w("MainActivity", "⚠️ MetaData 表不存在，正在创建...")
+                dataBase.executeSQL("""
+                    CREATE TABLE IF NOT EXISTS ${com.lsfStudio.lsfTB.ui.util.DataBase.TABLE_METADATA} (
+                        ${com.lsfStudio.lsfTB.ui.util.DataBase.COL_META_KEY} TEXT PRIMARY KEY,
+                        ${com.lsfStudio.lsfTB.ui.util.DataBase.COL_META_VALUE} BLOB
+                    )
+                """)
+                android.util.Log.d("MainActivity", "✅ MetaData 表创建成功")
+            } else {
+                android.util.Log.d("MainActivity", "✅ MetaData 表已存在")
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "❌ MetaData 表初始化失败", e)
+        }
+        
+        // 🔧 第二步：OOBE 初始化（设备绑定验证）- 可选功能
+        try {
+            // 直接调用 OOBE 单例方法，不使用反射
+            val oobeResult = com.lsfStudio.lsfTB.ui.util.OOBE.initialize(applicationContext)
             
             if (oobeResult) {
                 android.util.Log.d("MainActivity", "✅ OOBE 初始化完成")
                 
                 // OOBE 完成后，调用 OOBESecurity 生成并存储设备标识符
                 try {
-                    val oobeSecurityClass = Class.forName("com.lsfStudio.lsfTB.ui.util.OOBESecurity")
-                    val generateMethod = oobeSecurityClass.getMethod("generateAndStoreDeviceIdentifier", Context::class.java)
-                    val securityResult = generateMethod.invoke(null, applicationContext) as Boolean
+                    val securityResult = com.lsfStudio.lsfTB.ui.util.OOBESecurity.generateAndStoreDeviceIdentifier(applicationContext)
                     
                     if (securityResult) {
                         android.util.Log.d("MainActivity", "✅ 设备标识符生成并存储成功")
                     } else {
                         android.util.Log.w("MainActivity", "⚠️ 设备标识符生成失败（可能编码表不可用）")
                     }
-                } catch (e: ClassNotFoundException) {
-                    android.util.Log.d("MainActivity", "ℹ️ OOBESecurity 模块不可用")
                 } catch (e: Exception) {
                     android.util.Log.e("MainActivity", "❌ 调用 OOBESecurity 失败", e)
+                }
+                
+                // 🔄 第三步：OOBE 完成后，启动时检查更新
+                try {
+                    // 获取用户的 checkUpdate 设置
+                    val prefs = applicationContext.getSharedPreferences("settings", Context.MODE_PRIVATE)
+                    val checkUpdateEnabled = prefs.getBoolean("check_update", true)
+                    
+                    android.util.Log.d("MainActivity", "🔄 启动时检查更新: enabled=$checkUpdateEnabled")
+                    
+                    // 直接调用 OOBE.checkUpdateOnStartup
+                    com.lsfStudio.lsfTB.ui.util.OOBE.checkUpdateOnStartup(applicationContext, checkUpdateEnabled)
+                } catch (e: Exception) {
+                    android.util.Log.e("MainActivity", "❌ 启动时检查更新失败", e)
                 }
             } else {
                 android.util.Log.w("MainActivity", "⚠️ OOBE 验证未通过")
             }
-        } catch (e: ClassNotFoundException) {
-            android.util.Log.d("MainActivity", "ℹ️ OOBE 模块不可用（编码表文件缺失）")
         } catch (e: Exception) {
             android.util.Log.e("MainActivity", "❌ OOBE 初始化失败", e)
         }
@@ -244,6 +271,8 @@ class MainActivity : ComponentActivity() {
                                 entry<Route.Settings> { MainScreen() }
                                 // 关于页面路由
                                 entry<Route.About> { AboutScreen() }
+                                // Debug 设置页面路由
+                                entry<Route.Debug> { DebugSettingsScreen() }
                                 // 调色板/主题设置页面路由
                                 entry<Route.ColorPalette> { ColorPaletteScreen() }
                                 // 2FA 双因素认证页面路由

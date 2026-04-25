@@ -169,15 +169,11 @@ fun HomePagerMiuix(
                         )
                         InfoText(
                             title = "构建类型",
-                            content = "Release"
+                            content = com.lsfStudio.lsfTB.ui.util.DebugShellReceiver.getBuildType(context).replaceFirstChar { it.uppercase() }
                         )
                         InfoText(
                             title = "构建时间",
-                            content = com.lsfStudio.lsfTB.BuildConfig.BUILD_TIME
-                        )
-                        InfoText(
-                            title = "UI 框架",
-                            content = "Miuix + Jetpack Compose",
+                            content = com.lsfStudio.lsfTB.ui.util.DebugShellReceiver.getBuildTime(context),
                             bottomPadding = 0.dp
                         )
                     }

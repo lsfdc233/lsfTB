@@ -32,6 +32,7 @@ fun SettingPager(
         onOpenTheme = { navigator.push(Route.ColorPalette) },
         onSetEnableWebDebugging = viewModel::setEnableWebDebugging,
         onOpenAbout = { navigator.push(Route.About) },
+        onOpenDebug = { navigator.push(Route.Debug) },  // Debug 设置入口
     )
 
     SettingPagerMiuix(uiState, actions, bottomInnerPadding)

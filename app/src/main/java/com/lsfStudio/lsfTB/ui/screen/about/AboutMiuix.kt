@@ -3,9 +3,11 @@ package com.lsfStudio.lsfTB.ui.screen.about
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -57,6 +59,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import com.lsfStudio.lsfTB.R
 import com.lsfStudio.lsfTB.ui.component.dialog.ConfirmDialogMiuix
 import com.lsfStudio.lsfTB.ui.theme.LocalEnableBlur
@@ -99,6 +103,7 @@ fun AboutScreenMiuix(
     
     // Debug 弹窗状态
     var showDebugDialog by remember { mutableStateOf(false) }
+    var debugDialogClickTime by remember { mutableStateOf(0L) }  // 记录弹窗打开时间
 
     Scaffold(
         topBar = {
@@ -255,6 +260,7 @@ fun AboutScreenMiuix(
                                     // 连续点击5次触发 Debug 弹窗
                                     if (clickCount >= 5) {
                                         showDebugDialog = true
+                                        debugDialogClickTime = System.currentTimeMillis()  // 记录打开时间
                                         clickCount = 0
                                         Log.d("AboutMiuix", "🔧 触发 Debug 模式")
                                     }
@@ -290,6 +296,57 @@ fun AboutScreenMiuix(
                             )
                         }
                     }
+                    
+                    // 设备信息卡片（使用主页的信息预览样式）
+                    val context = LocalContext.current
+                    val metadataList = remember { com.lsfStudio.lsfTB.ui.util.OOBE.getAllMetadata(context) }
+                    
+                    if (metadataList.isNotEmpty()) {
+                        Card(
+                            modifier = Modifier
+                                .padding(bottom = 12.dp)
+                                .clip(miuixShape(12.dp))
+                                .combinedClickable(
+                                    onClick = { },
+                                    onLongClick = {
+                                        // 震动反馈
+                                        com.lsfStudio.lsfTB.ui.util.HapticFeedbackUtil.lightClick(context)
+                                        
+                                        // 格式化文本
+                                        val clipboardText = buildString {
+                                            metadataList.forEach { (title, content) ->
+                                                append("$title：\n$content\n")
+                                            }
+                                        }
+                                        
+                                        // 复制到剪贴板
+                                        val clipboardManager = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                        val clip = android.content.ClipData.newPlainText("设备信息", clipboardText)
+                                        clipboardManager.setPrimaryClip(clip)
+                                        
+                                        // 显示 Toast
+                                        Toast.makeText(context, "已复制到剪贴板", Toast.LENGTH_SHORT).show()
+                                        
+                                        Log.d("AboutMiuix", "✅ 设备信息已复制到剪贴板")
+                                    }
+                                )
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp)
+                            ) {
+                                metadataList.forEachIndexed { index, (title, content) ->
+                                    InfoText(
+                                        title = title,
+                                        content = content,
+                                        bottomPadding = if (index == metadataList.size - 1) 0.dp else 16.dp
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    
                     Spacer(
                         Modifier.height(
                             WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() +
@@ -306,34 +363,67 @@ fun AboutScreenMiuix(
         val context = androidx.compose.ui.platform.LocalContext.current
         var userInput by remember { mutableStateOf("") }
         
+        // 🔧 检测当前是否为开发版（数据库中存储的是 "dev"）
+        val isDevMode = remember {
+            try {
+                val dataBaseClass = Class.forName("com.lsfStudio.lsfTB.ui.util.DataBase")
+                val dataBaseConstructor = dataBaseClass.getConstructor(Context::class.java)
+                val dataBase = dataBaseConstructor.newInstance(context)
+                
+                val oobeClass = Class.forName("com.lsfStudio.lsfTB.ui.util.OOBE")
+                val keyDeviceIdField = oobeClass.getDeclaredField("KEY_DEVICE_ID")
+                val keyDeviceId = keyDeviceIdField.get(null) as String
+                
+                val getMetadataMethod = dataBaseClass.getMethod("getMetadataText", String::class.java)
+                val storedValue = getMetadataMethod.invoke(dataBase, keyDeviceId) as String?
+                
+                storedValue == "dev"
+            } catch (e: Exception) {
+                Log.w("AboutMiuix", "⚠️ 检测开发版状态失败", e)
+                false
+            }
+        }
+        
         WindowDialog(
             show = true,
             modifier = Modifier.padding(WindowInsets.systemBars.only(WindowInsetsSides.Top).asPaddingValues()),
             title = "🔧 Debug 模式",
             onDismissRequest = {
-                showDebugDialog = false
+                // 防抖：弹窗打开后 500ms 内不响应关闭（防止快速点击误关闭）
+                val currentTime = System.currentTimeMillis()
+                if (currentTime - debugDialogClickTime > 500) {
+                    showDebugDialog = false
+                }
             },
             content = {
                 Column(
                     modifier = Modifier.padding(16.dp)
                 ) {
                     Text(
-                        text = "请输入设备标识符进行验证\n（支持噪声格式：!内容^ 或 (内容)）",
+                        text = "请输入设备标识符进行验证",
                         fontSize = 14.sp,
-                        modifier = Modifier.padding(bottom = 12.dp)
+                        modifier = Modifier.padding(bottom = 8.dp)
                     )
                     
-                    TextField(
+                    // 🔧 只在开发版时显示提示
+                    if (isDevMode) {
+                        Text(
+                            text = "💡 开发版标识符均为 dev",
+                            fontSize = 12.sp,
+                            color = MiuixTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                            modifier = Modifier.padding(bottom = 12.dp)
+                        )
+                    }
+                    
+                    top.yukonga.miuix.kmp.basic.TextField(
                         value = userInput,
                         onValueChange = { userInput = it },
-                        label = { Text("设备标识符") },
-                        placeholder = { Text("例如: a1b2c3d4e5... 或 a(!noise^)1b2...") },
+                        label = "设备标识符",
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(bottom = 12.dp),
                         singleLine = false,
-                        maxLines = 5,
-                        keyboardOptions = KeyboardOptions.Default
+                        maxLines = 5
                     )
                     
                     Row(
@@ -353,7 +443,7 @@ fun AboutScreenMiuix(
                             onClick = {
                                 if (userInput.isNotBlank()) {
                                     try {
-                                        // 动态加载 LsfEncoder（如果存在）
+                                        // 正常流程：动态加载 LsfEncoder（如果存在）
                                         val lsfEncoderClass = Class.forName("com.lsfStudio.lsfTB.ui.util.LsfEncoder")
                                         val constructor = lsfEncoderClass.getConstructor(Context::class.java)
                                         val encoder = constructor.newInstance(context)
@@ -384,14 +474,28 @@ fun AboutScreenMiuix(
                                         if (storedIdentifierBytes != null && storedIdentifierBytes.isNotEmpty()) {
                                             val storedBinary = String(storedIdentifierBytes, Charsets.UTF_8)
                                             
-                                            // 动态加载 OOBESecurity
-                                            val oobeSecurityClass = Class.forName("com.lsfStudio.lsfTB.ui.util.OOBESecurity")
-                                            val verifyMethod = oobeSecurityClass.getMethod("verifyUserInput", Context::class.java, String::class.java, String::class.java)
-                                            val isMatch = verifyMethod.invoke(null, context, userInput, storedBinary) as Boolean
+                                            // 🔧 如果存储的是 "dev"，只接受 "dev" 输入
+                                            if (storedBinary == "dev") {
+                                                if (userInput.trim().equals("dev", ignoreCase = true)) {
+                                                    com.lsfStudio.lsfTB.ui.util.DebugShellReceiver.enableDevMode(context)
+                                                    Toast.makeText(context, "✅ 开发版验证通过！开发者模式已启用", Toast.LENGTH_LONG).show()
+                                                    Log.d("AboutMiuix", "✅ 开发版标识符验证通过")
+                                                } else {
+                                                    Toast.makeText(context, "❌ 验证失败：当前为开发版，请输入 dev", Toast.LENGTH_LONG).show()
+                                                    Log.w("AboutMiuix", "❌ 开发版但输入非 dev")
+                                                }
+                                                showDebugDialog = false
+                                                return@TextButton
+                                            }
+                                            
+                                            // 正常流程：调用 OOBESecurity.verifyUserInput
+                                            val isMatch = com.lsfStudio.lsfTB.ui.util.OOBESecurity.verifyUserInput(context, userInput, storedBinary)
                                             
                                             if (isMatch) {
-                                                Toast.makeText(context, "✅ 验证通过！", Toast.LENGTH_LONG).show()
-                                                Log.d("AboutMiuix", "✅ 设备标识符验证通过")
+                                                // 验证通过，启用开发者模式
+                                                com.lsfStudio.lsfTB.ui.util.DebugShellReceiver.enableDevMode(context)
+                                                Toast.makeText(context, "✅ 验证通过！开发者模式已启用", Toast.LENGTH_LONG).show()
+                                                Log.d("AboutMiuix", "✅ 设备标识符验证通过，开发者模式已启用")
                                             } else {
                                                 Toast.makeText(context, "❌ 验证失败：标识符不匹配", Toast.LENGTH_LONG).show()
                                                 Log.w("AboutMiuix", "❌ 设备标识符验证失败")
@@ -401,8 +505,37 @@ fun AboutScreenMiuix(
                                             Log.w("AboutMiuix", "⚠️ 数据库中未找到设备标识符")
                                         }
                                     } catch (e: ClassNotFoundException) {
-                                        Toast.makeText(context, "⚠️ 编码模块不可用", Toast.LENGTH_LONG).show()
-                                        Log.w("AboutMiuix", "⚠️ 编码模块类未找到")
+                                        // 🔧 如果 OOBESecurity/LsfEncoder 不存在，检查是否为 dev 模式
+                                        if (userInput.trim().equals("dev", ignoreCase = true)) {
+                                            try {
+                                                // 尝试直接从数据库读取
+                                                val dataBaseClass = Class.forName("com.lsfStudio.lsfTB.ui.util.DataBase")
+                                                val dataBaseConstructor = dataBaseClass.getConstructor(Context::class.java)
+                                                val dataBase = dataBaseConstructor.newInstance(context)
+                                                
+                                                val oobeClass = Class.forName("com.lsfStudio.lsfTB.ui.util.OOBE")
+                                                val keyDeviceIdField = oobeClass.getDeclaredField("KEY_DEVICE_ID")
+                                                val keyDeviceId = keyDeviceIdField.get(null) as String
+                                                
+                                                val getMetadataMethod = dataBaseClass.getMethod("getMetadataText", String::class.java)
+                                                val storedValue = getMetadataMethod.invoke(dataBase, keyDeviceId) as String?
+                                                
+                                                if (storedValue == "dev") {
+                                                    com.lsfStudio.lsfTB.ui.util.DebugShellReceiver.enableDevMode(context)
+                                                    Toast.makeText(context, "✅ 开发版验证通过！开发者模式已启用", Toast.LENGTH_LONG).show()
+                                                    Log.d("AboutMiuix", "✅ 开发版标识符验证通过（降级模式）")
+                                                } else {
+                                                    Toast.makeText(context, "⚠️ 编码模块不可用，请使用 dev", Toast.LENGTH_LONG).show()
+                                                    Log.w("AboutMiuix", "⚠️ 编码模块类未找到且非 dev 模式")
+                                                }
+                                            } catch (e2: Exception) {
+                                                Toast.makeText(context, "⚠️ 编码模块不可用，请使用 dev", Toast.LENGTH_LONG).show()
+                                                Log.w("AboutMiuix", "⚠️ 编码模块类未找到")
+                                            }
+                                        } else {
+                                            Toast.makeText(context, "⚠️ 编码模块不可用，请使用 dev", Toast.LENGTH_LONG).show()
+                                            Log.w("AboutMiuix", "⚠️ 编码模块类未找到")
+                                        }
                                     } catch (e: Exception) {
                                         Toast.makeText(context, "❌ 验证错误: ${e.message}", Toast.LENGTH_LONG).show()
                                         Log.e("AboutMiuix", "❌ 验证错误", e)
@@ -420,4 +553,24 @@ fun AboutScreenMiuix(
             }
         )
     }
+}
+
+@Composable
+private fun InfoText(
+    title: String,
+    content: String,
+    bottomPadding: androidx.compose.ui.unit.Dp = 16.dp
+) {
+    Text(
+        text = title,
+        fontSize = MiuixTheme.textStyles.headline1.fontSize,
+        fontWeight = FontWeight.Medium,
+        color = colorScheme.onSurface
+    )
+    Text(
+        text = content,
+        fontSize = MiuixTheme.textStyles.body2.fontSize,
+        color = colorScheme.onSurfaceVariantSummary,
+        modifier = Modifier.padding(top = 2.dp, bottom = bottomPadding)
+    )
 }

@@ -20,6 +20,10 @@ sealed interface Route : NavKey, Parcelable {
 
     @Parcelize
     @Serializable
+    data object Debug : Route  // Debug 设置页面
+
+    @Parcelize
+    @Serializable
     data object ColorPalette : Route
 
     @Parcelize

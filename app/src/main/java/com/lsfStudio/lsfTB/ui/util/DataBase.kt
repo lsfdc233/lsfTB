@@ -64,6 +64,9 @@ class DataBase(context: Context) : SQLiteOpenHelper(
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         Log.d(TAG, "🔄 数据库升级: $oldVersion -> $newVersion")
         
+        // 确保 MetaData 表存在（防止旧版本没有此表）
+        createMetaTable(db)
+        
         // 根据版本进行升级
         if (oldVersion < 2) {
             // 版本2的升级逻辑

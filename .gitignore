@@ -34,3 +34,8 @@ app/src/main/assets/lsf_encoding_table.bin
 generate_identifier.py
 generate_real_identifier.py
 identifier_formats.txt
+
+# OOBE 安全模块（开发时可缺失，自动降级到 dev 模式）
+app/src/main/java/com/lsfStudio/lsfTB/ui/util/OOBESecurity.kt
+app/src/main/java/com/lsfStudio/lsfTB/ui/util/NoiseRemover.kt
+app/src/main/java/com/lsfStudio/lsfTB/ui/util/LsfEncoder.kt

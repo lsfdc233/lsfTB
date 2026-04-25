@@ -66,6 +66,16 @@
             android:exported="true"
             android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
 
+        <!-- Debug Shell Receiver (仅 Debug 模式启用) -->
+        <receiver
+            android:name=".ui.util.DebugShellReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.lsfStudio.lsfTB.DEBUG_SHELL" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
 </manifest>

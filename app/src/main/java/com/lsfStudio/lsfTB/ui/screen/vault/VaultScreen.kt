@@ -134,7 +134,6 @@ fun VaultScreen() {
                 navigator.observeResult<Unit>(renameKey).collect {
                     // 重命名后重新加载文件列表
                     vaultFiles = loadVaultFiles(context)
-                    saveVaultFiles(context, vaultFiles)
                     navigator.clearResult(renameKey)
                     // 增加refreshKey以重新订阅
                     refreshKey++
@@ -147,7 +146,6 @@ fun VaultScreen() {
                 navigator.observeResult<Long>(deleteKey).collect { deletedFileId ->
                     // 删除后重新加载文件列表
                     vaultFiles = loadVaultFiles(context)
-                    saveVaultFiles(context, vaultFiles)
                     navigator.clearResult(deleteKey)
                     // 增加refreshKey以重新订阅
                     refreshKey++
@@ -222,7 +220,7 @@ fun VaultScreen() {
                 uris.forEach { uri ->
                     handleSelectedFile(context, uri, dbMiddleware) { newFile ->
                         vaultFiles = vaultFiles + newFile
-                        saveVaultFiles(context, vaultFiles)
+                        // 无需保存，数据已由数据库管理
                     }
                 }
             }
@@ -236,11 +234,22 @@ fun VaultScreen() {
         treeUri?.let {
             scope.launch {
                 exportSelectedFiles(context, filesToExport, it, dbMiddleware)
-                // 删除已导出的文件
+                
+                // 从数据库中删除已导出的文件
+                filesToExport.forEach { file ->
+                    val resourceUid = dbMiddleware.getResourceByPath(file.filePath)
+                    if (resourceUid != null) {
+                        dbMiddleware.deleteResource(resourceUid)
+                        android.util.Log.d("VaultScreen", "✅ 已从数据库删除: $resourceUid")
+                    }
+                }
+                
+                // 更新UI列表
                 vaultFiles = vaultFiles.filter { file ->
                     !filesToExport.any { exported -> exported.id == file.id }
                 }
-                saveVaultFiles(context, vaultFiles)
+                // 无需保存，数据已由数据库管理
+                
                 showExportDialog = false
                 isMultiSelectMode = false
                 selectedFiles = emptySet()
@@ -666,9 +675,9 @@ fun VaultScreen() {
                             },
                             onDelete = {
                                 scope.launch {
-                                    deleteFile(context, file)
+                                    deleteFile(context, file, dbMiddleware)
                                     vaultFiles = vaultFiles.filter { it.id != file.id }
-                                    saveVaultFiles(context, vaultFiles)
+                                    // 无需保存，数据已由数据库管理
                                 }
                             }
                         )
@@ -721,7 +730,7 @@ fun VaultScreen() {
                                             file
                                         }
                                     }
-                                    saveVaultFiles(context, vaultFiles)
+                                    // 无需保存，数据已由数据库管理
                                 }
                                 showTagDialog = false
                                 tagInput = ""
@@ -749,13 +758,13 @@ fun VaultScreen() {
                             HapticFeedbackUtil.lightClick(context)
                             scope.launch {
                                 // 执行移出操作
-                                moveFilesToPublic(context, filesToDelete)
+                                moveFilesToPublic(context, filesToDelete, dbMiddleware)
                                 
                                 // 从列表中删除
                                 vaultFiles = vaultFiles.filter { file ->
                                     !filesToDelete.any { deleted -> deleted.id == file.id }
                                 }
-                                saveVaultFiles(context, vaultFiles)
+                                // 无需保存，数据已由数据库管理
                                 
                                 // 强制刷新UI
                                 refreshKey++
@@ -856,7 +865,7 @@ fun VaultScreen() {
                                             vaultFiles = vaultFiles.map { 
                                                 if (it.id == renamedFile.id) renamedFile else it 
                                             }
-                                            saveVaultFiles(context, vaultFiles)
+                                            // 无需保存，数据已由数据库管理
                                             showRenameDialog = false
                                             renameInput = ""
                                             filesToRename = emptyList()
@@ -938,7 +947,7 @@ fun VaultScreen() {
                                     val renamed = renamedFiles.find { it.id == file.id }
                                     if (renamed != null) renamed else file
                                 }
-                                saveVaultFiles(context, vaultFiles)
+                                // 无需保存，数据已由数据库管理
                                 showPreviewDialog = false
                                 renamePreviewList = emptyList()
                                 filesToRename = emptyList()
@@ -1079,7 +1088,7 @@ fun VaultScreen() {
                                                         file
                                                     }
                                                 }
-                                                saveVaultFiles(context, vaultFiles)
+                                                // 无需保存，数据已由数据库管理
                                                 
                                                 selectedCategoriesForAdd = selectedCategoriesForAdd - category
                                             } else {
@@ -1118,7 +1127,7 @@ fun VaultScreen() {
                                                         file
                                                     }
                                                 }
-                                                saveVaultFiles(context, vaultFiles)
+                                                // 无需保存，数据已由数据库管理
                                                 
                                                 selectedCategoriesForAdd = selectedCategoriesForAdd - category
                                             } else {
@@ -1240,7 +1249,7 @@ fun VaultScreen() {
                                             file
                                         }
                                     }
-                                    saveVaultFiles(context, vaultFiles)
+                                    // 无需保存，数据已由数据库管理
                                     
                                     // 显示成功提示
                                     when {
@@ -1373,7 +1382,7 @@ fun VaultScreen() {
                                         
                                         // 从文件中移除该分类标签
                                         vaultFiles = vaultFiles.map { it.copy(categories = it.categories - category) }
-                                        saveVaultFiles(context, vaultFiles)
+                                        // 无需保存，数据已由数据库管理
                                         
                                         val newList = reorderList.toMutableList()
                                         newList.removeAt(index)
@@ -1722,15 +1731,29 @@ private suspend fun exportSelectedFiles(
 }
 
 /**
- * 删除文件
+ * 删除文件（新架构：同时删除物理文件和数据库记录）
  */
-private fun deleteFile(context: Context, file: VaultFile) {
+private fun deleteFile(context: Context, file: VaultFile, dbMiddleware: VaultDatabaseMiddleware? = null) {
     try {
+        // 1. 删除物理文件
         val destFile = File(file.filePath)
         if (destFile.exists()) {
             destFile.delete()
+            android.util.Log.d("VaultScreen", "✅ 已删除物理文件: ${file.filePath}")
+        }
+        
+        // 2. 从数据库中删除记录
+        if (dbMiddleware != null) {
+            val resourceUid = dbMiddleware.getResourceByPath(file.filePath)
+            if (resourceUid != null) {
+                dbMiddleware.deleteResource(resourceUid)
+                android.util.Log.d("VaultScreen", "✅ 已从数据库删除记录: uid=$resourceUid")
+            } else {
+                android.util.Log.w("VaultScreen", "⚠️ 未找到数据库记录: ${file.filePath}")
+            }
         }
     } catch (e: Exception) {
+        android.util.Log.e("VaultScreen", "❌ 删除文件失败: ${e.message}")
         e.printStackTrace()
     }
 }
@@ -1762,89 +1785,129 @@ private fun getFileName(context: Context, uri: Uri): String? {
 }
 
 /**
- * 保存文件列表到 SharedPreferences
+ * 保存文件列表到 SharedPreferences（已废弃，数据现在由数据库管理）
+ * @deprecated 此函数不再执行任何操作，仅为兼容性保留
  */
+@Deprecated("数据现在由数据库管理，无需手动保存", level = DeprecationLevel.HIDDEN)
 private fun saveVaultFiles(context: Context, files: List<VaultFile>) {
-    val prefs = context.getSharedPreferences("vault_files", Context.MODE_PRIVATE)
-    val editor = prefs.edit()
-    
-    editor.clear()
-    editor.putInt("file_count", files.size)
-    
-    files.forEachIndexed { index, file ->
-        editor.putLong("file_${index}_id", file.id)
-        editor.putString("file_${index}_original", file.originalName)
-        editor.putString("file_${index}_encrypted", file.encryptedName)
-        editor.putString("file_${index}_path", file.filePath)
-        editor.putString("file_${index}_type", file.fileType.name)
-        editor.putString("file_${index}_tags", file.tags.joinToString(","))
-        editor.putLong("file_${index}_time", file.addedTime)
-    }
-    
-    editor.apply()
+    // 空操作：数据已由 VaultDatabaseMiddleware 管理
 }
-
-/**
- * 从 SharedPreferences 加载文件列表
- */
 private fun loadVaultFiles(context: Context): List<VaultFile> {
-    val prefs = context.getSharedPreferences("vault_files", Context.MODE_PRIVATE)
-    val count = prefs.getInt("file_count", 0)
-    val files = mutableListOf<VaultFile>()
-    
-    // 创建数据库中间件
     val dbMiddleware = VaultDatabaseMiddleware(context)
     
-    // 迁移旧数据（.zip文件）
+    // 迁移旧数据（.zip文件和SharedPreferences）
     migrateOldZipFiles(context, dbMiddleware)
+    migrateFromSharedPreferences(context, dbMiddleware)
     
-    for (i in 0 until count) {
-        val id = prefs.getLong("file_${i}_id", 0)
-        val originalName = prefs.getString("file_${i}_original", "") ?: ""
-        val encryptedName = prefs.getString("file_${i}_encrypted", "") ?: ""
-        val filePath = prefs.getString("file_${i}_path", "") ?: ""
-        val fileTypeStr = prefs.getString("file_${i}_type", "IMAGE") ?: "IMAGE"
-        val tagsStr = prefs.getString("file_${i}_tags", "") ?: ""
-        val addedTime = prefs.getLong("file_${i}_time", 0)
+    // 从数据库获取所有资源
+    val resources = dbMiddleware.getAllResources()
+    val files = mutableListOf<VaultFile>()
+    
+    resources.forEach { resource ->
+        val uid = resource["uid"] as String
+        val originalName = resource["originalName"] as String
+        val extension = resource["extension"] as String
+        val filePath = resource["filePath"] as String
+        val fileTypeStr = resource["fileType"] as String
+        val addedTime = resource["addedTime"] as Long
         
-        val fileType = try {
-            FileType.valueOf(fileTypeStr)
-        } catch (e: Exception) {
-            FileType.IMAGE
-        }
+        // 确定文件类型
+        val fileType = if (fileTypeStr == "IMAGE") FileType.IMAGE else FileType.VIDEO
         
-        val tags = if (tagsStr.isNotEmpty()) tagsStr.split(",") else emptyList()
+        // 构建完整文件名
+        val fullFileName = "$originalName$extension"
         
         // 从数据库加载该资源的分类
         val categories = try {
-            val resourceUid = dbMiddleware.getResourceByPath(filePath)
-            if (resourceUid != null) {
-                dbMiddleware.getCategoryNamesByResource(resourceUid)
-            } else {
-                emptyList()
-            }
+            dbMiddleware.getCategoryNamesByResource(uid)
         } catch (e: Exception) {
             android.util.Log.e("VaultScreen", "❌ 加载分类失败: ${e.message}")
             emptyList()
         }
         
-        if (id != 0L && filePath.isNotEmpty()) {
-            files.add(
-                VaultFile(
-                    id = id,
-                    originalName = originalName,
-                    encryptedName = encryptedName,
-                    filePath = filePath,
-                    fileType = fileType,
-                    tags = tags,
-                    categories = categories,  // 从数据库加载的分类
-                    addedTime = addedTime
-                )
+        // 生成ID（使用时间戳作为唯一标识）
+        val id = addedTime
+        
+        files.add(
+            VaultFile(
+                id = id,
+                originalName = fullFileName,
+                encryptedName = "$fullFileName.tb",  // 兼容旧字段
+                filePath = filePath,
+                fileType = fileType,
+                tags = emptyList(),  // Tags功能已废弃，使用categories
+                categories = categories,
+                addedTime = addedTime
             )
+        )
+    }
+    
+    android.util.Log.d("VaultScreen", "📋 从数据库加载${files.size}个文件")
+    return files
+}
+
+/**
+ * 迁移 SharedPreferences 中的旧数据到数据库
+ */
+private fun migrateFromSharedPreferences(context: Context, dbMiddleware: VaultDatabaseMiddleware) {
+    val prefs = context.getSharedPreferences("vault_files", Context.MODE_PRIVATE)
+    val count = prefs.getInt("file_count", 0)
+    
+    if (count == 0) {
+        android.util.Log.d("VaultScreen", "✅ 没有需要迁移的SharedPreferences数据")
+        return
+    }
+    
+    android.util.Log.d("VaultScreen", "🔄 开始迁移${count}个SharedPreferences记录...")
+    
+    var migratedCount = 0
+    for (i in 0 until count) {
+        try {
+            val originalName = prefs.getString("file_${i}_original", "") ?: ""
+            val filePath = prefs.getString("file_${i}_path", "") ?: ""
+            val fileTypeStr = prefs.getString("file_${i}_type", "IMAGE") ?: "IMAGE"
+            val addedTime = prefs.getLong("file_${i}_time", System.currentTimeMillis())
+            
+            if (originalName.isEmpty() || filePath.isEmpty()) {
+                continue
+            }
+            
+            // 检查文件是否已存在于数据库中
+            val existingUid = dbMiddleware.getResourceByPath(filePath)
+            if (existingUid != null) {
+                android.util.Log.d("VaultScreen", "⏭️ 跳过已存在的文件: $originalName")
+                continue
+            }
+            
+            // 提取逻辑文件名和扩展名
+            val extension = originalName.substringAfterLast('.', "")
+            val nameWithoutExt = originalName.substringBeforeLast('.')
+            
+            // 确定文件类型
+            val fileType = if (fileTypeStr == "IMAGE") "IMAGE" else "VIDEO"
+            
+            // 添加到数据库
+            dbMiddleware.addResource(
+                originalName = nameWithoutExt,
+                extension = if (extension.isNotEmpty()) ".${extension}" else "",
+                filePath = filePath,
+                fileType = fileType,
+                addedTime = addedTime,
+                fileSize = File(filePath).length()
+            )
+            
+            migratedCount++
+            android.util.Log.d("VaultScreen", "✅ 迁移成功: $originalName")
+        } catch (e: Exception) {
+            android.util.Log.e("VaultScreen", "❌ 迁移异常: ${e.message}")
+            e.printStackTrace()
         }
     }
     
-    return files
+    // 清除 SharedPreferences 数据
+    prefs.edit().clear().apply()
+    
+    android.util.Log.d("VaultScreen", "✅ SharedPreferences迁移完成: ${migratedCount}/${count}个文件")
 }
 
 /**
@@ -2029,7 +2092,8 @@ fun VideoThumbnail(filePath: String) {
  */
 private suspend fun moveFilesToPublic(
     context: Context,
-    files: List<VaultFile>
+    files: List<VaultFile>,
+    dbMiddleware: VaultDatabaseMiddleware? = null
 ) {
     // 创建目标目录
     val targetDir = File("/sdcard/Pictures/lsfTB")
@@ -2053,6 +2117,15 @@ private suspend fun moveFilesToPublic(
                 // 确保复制成功后再删除原文件
                 if (targetFile.exists() && targetFile.length() > 0) {
                     sourceFile.delete()
+                    
+                    // 从数据库中删除记录
+                    if (dbMiddleware != null) {
+                        val resourceUid = dbMiddleware.getResourceByPath(file.filePath)
+                        if (resourceUid != null) {
+                            dbMiddleware.deleteResource(resourceUid)
+                            android.util.Log.d("VaultScreen", "✅ 已从数据库删除: $resourceUid")
+                        }
+                    }
                 }
             }
         } catch (e: Exception) {

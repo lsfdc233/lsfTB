@@ -138,6 +138,23 @@ fun SettingPagerMiuix(
                             },
                             onClick = actions.onOpenAbout,
                         )
+                        
+                        // Debug 入口（仅在开发者模式启用时显示）
+                        if (uiState.devModeEnabled) {
+                            ArrowPreference(
+                                title = "Debug",
+                                summary = "开发者调试选项",
+                                startAction = {
+                                    Icon(
+                                        Icons.Rounded.BugReport,
+                                        modifier = Modifier.padding(end = 6.dp),
+                                        contentDescription = "Debug",
+                                        tint = colorScheme.onBackground
+                                    )
+                                },
+                                onClick = actions.onOpenDebug,
+                            )
+                        }
                     }
                     Spacer(Modifier.height(bottomInnerPadding))
                 }

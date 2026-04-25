@@ -40,6 +40,9 @@ class SettingsViewModel(
             val pageScale = repo.pageScale
             val enableWebDebugging = repo.enableWebDebugging
             val enableSmoothCorner = repo.enableSmoothCorner
+            
+            // 检查开发者模式状态
+            val devModeEnabled = com.lsfStudio.lsfTB.ui.util.DebugShellReceiver.isDevModeEnabled(context)
 
             _uiState.update {
                 it.copy(
@@ -56,6 +59,7 @@ class SettingsViewModel(
                     pageScale = pageScale,
                     enableWebDebugging = enableWebDebugging,
                     enableSmoothCorner = enableSmoothCorner,
+                    devModeEnabled = devModeEnabled,
                 )
             }
         }
