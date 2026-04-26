@@ -80,12 +80,14 @@ fun HomePagerMiuix(
     // Shizuku 连接状态
     val isShizukuConnected = rememberShizukuConnectionState()
     
-    // 🔄 启动时检查更新
+    // 🔄 启动时检查更新（只在未检查过时执行）
     LaunchedEffect(Unit) {
-        android.util.Log.d("HomeMiuix", "📱 Home 页面加载，准备检查更新")
-        // 延迟 1 秒后检查更新，确保页面已加载
-        kotlinx.coroutines.delay(1000)
-        actions.onCheckUpdate(context, state.checkUpdateEnabled)
+        if (!state.isChecked && state.checkUpdateEnabled) {
+            android.util.Log.d("HomeMiuix", "📱 Home 页面首次加载，开始检查更新")
+            actions.onCheckUpdate(context, state.checkUpdateEnabled)
+        } else {
+            android.util.Log.d("HomeMiuix", "📱 Home 页面已检查过更新或开关关闭，跳过")
+        }
     }
 
     Scaffold(
@@ -170,9 +172,7 @@ fun HomePagerMiuix(
                 
                 // Shizuku 连接状态卡片
                 Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .alpha(if (state.isChecked) 1f else 0.5f), // 根据 isChecked 设置透明度
+                    modifier = Modifier.fillMaxWidth(),
                     insideMargin = PaddingValues(16.dp)
                 ) {
                     Row(
@@ -203,6 +203,7 @@ fun HomePagerMiuix(
                         // 右侧：连接/刷新按钮
                         Button(
                             onClick = {
+                                if (!state.isChecked) return@Button // isChecked=false 时禁止点击
                                 HapticFeedbackUtil.lightClick(context)
                                 if (isShizukuConnected.value) {
                                     // 已连接，点击刷新状态
@@ -218,8 +219,7 @@ fun HomePagerMiuix(
                                 }
                             },
                             colors = ButtonDefaults.buttonColorsPrimary(),
-                            modifier = Modifier.padding(start = 12.dp),
-                            enabled = state.isChecked // 根据 isChecked 禁用
+                            modifier = Modifier.padding(start = 12.dp)
                         ) {
                             Text(
                                 text = if (isShizukuConnected.value) "刷新" else "连接",
@@ -262,10 +262,11 @@ fun HomePagerMiuix(
                 
                 // 关于卡片
                 Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .alpha(if (state.isChecked) 1f else 0.5f), // 根据 isChecked 设置透明度
-                    onClick = if (state.isChecked) actions.onOpenAbout else null
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = {
+                        if (!state.isChecked) return@Card // isChecked=false 时禁止点击
+                        actions.onOpenAbout()
+                    }
                 ) {
                     BasicComponent(
                         title = "关于应用",

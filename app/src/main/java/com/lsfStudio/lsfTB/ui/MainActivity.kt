@@ -131,20 +131,7 @@ class MainActivity : ComponentActivity() {
             
             if (oobeResult) {
                 android.util.Log.d("MainActivity", "✅ OOBE 初始化完成")
-                
-                // 🔄 第三步：OOBE 完成后，启动时检查更新
-                try {
-                    // 获取用户的 checkUpdate 设置
-                    val prefs = applicationContext.getSharedPreferences("settings", Context.MODE_PRIVATE)
-                    val checkUpdateEnabled = prefs.getBoolean("check_update", true)
-                    
-                    android.util.Log.d("MainActivity", "🔄 启动时检查更新: enabled=$checkUpdateEnabled")
-                    
-                    // 直接调用 OOBE.checkUpdateOnStartup
-                    com.lsfStudio.lsfTB.ui.util.OOBE.checkUpdateOnStartup(applicationContext, checkUpdateEnabled)
-                } catch (e: Exception) {
-                    android.util.Log.e("MainActivity", "❌ 启动时检查更新失败", e)
-                }
+                // 🔄 注意：启动时检查更新已移至 HomeMiuix，由 Settings 开关控制
             } else {
                 android.util.Log.w("MainActivity", "⚠️ OOBE 验证未通过")
             }

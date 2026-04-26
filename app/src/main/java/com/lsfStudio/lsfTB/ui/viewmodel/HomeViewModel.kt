@@ -58,7 +58,9 @@ class HomeViewModel(
             val enabled = repo.checkUpdate
             
             if (!enabled) {
-                android.util.Log.d("HomeViewModel", "⚙️ 用户禁用了自动检查更新")
+                android.util.Log.d("HomeViewModel", "⚙️ 用户禁用了自动检查更新，直接启用所有控件")
+                // Settings 开关关闭时，直接设置 isChecked = true，允许所有控件操作
+                _uiState.value = _uiState.value.copy(isChecked = true)
                 return@launch
             }
             
