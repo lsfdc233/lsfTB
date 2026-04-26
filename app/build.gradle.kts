@@ -124,6 +124,14 @@ android {
         ndk {
             abiFilters += listOf("arm64-v8a")
         }
+        
+        // 📦 启用 16KB 页支持（Android 15+）
+        // 确保原生库与 16KB 页面对齐
+        packaging {
+            jniLibs {
+                useLegacyPackaging = false
+            }
+        }
     }
 
     lint {
@@ -254,4 +262,8 @@ dependencies {
     
     // ML Kit for barcode scanning
     implementation("com.google.mlkit:barcode-scanning:17.2.0")
+    
+    // 🔄 RxJava3 and RxAndroid3
+    implementation(libs.rxjava3)
+    implementation(libs.rxandroid3)
 }

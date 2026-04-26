@@ -20,6 +20,8 @@ backdrop = "1.0.6"
 okhttp = "5.3.2"
 hiddenapibypass = "6.1"
 appiconloader = "1.5.0"
+rxjava3 = "3.1.8"
+rxandroid3 = "3.0.2"
 
 [plugins]
 agp-app = { id = "com.android.application", version.ref = "agp" }
@@ -69,3 +71,6 @@ backdrop = { module = "io.github.kyant0:backdrop", version.ref = "backdrop" }
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 
 material-kolor = { group = "com.materialkolor", name = "material-kolor", version.ref = "materialKolor" }
+
+rxjava3 = { group = "io.reactivex.rxjava3", name = "rxjava", version.ref = "rxjava3" }
+rxandroid3 = { group = "io.reactivex.rxjava3", name = "rxandroid", version.ref = "rxandroid3" }
