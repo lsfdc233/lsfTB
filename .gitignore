@@ -2,6 +2,7 @@
 sign.properties
 *.jks
 *.keystore
+DEBUG_SHELL_GUIDE.md
 
 # 构建输出
 build/
