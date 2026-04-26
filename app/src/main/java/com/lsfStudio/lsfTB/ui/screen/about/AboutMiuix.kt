@@ -509,11 +509,8 @@ private fun verifyIdentifierWithServer(context: Context, userInput: String) {
                 verifyJson
             )
             
-            // 获取服务器 URL
-            val serverInfoClass = Class.forName("com.lsfStudio.lsfTB.ui.util.ServerInfo")
-            val serverUrlField = serverInfoClass.getDeclaredField("ServerUrl")
-            serverUrlField.isAccessible = true
-            val serverUrl = serverUrlField.get(null) as String
+            // 获取服务器 URL（使用 BuildConfig）
+            val serverUrl = com.lsfStudio.lsfTB.BuildConfig.SERVER_URL
             
             // 构建请求（NetworkClient 自动签名）
             val request = com.lsfStudio.lsfTB.ui.util.NetworkClient.buildPostRequest(
