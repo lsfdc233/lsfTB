@@ -11,6 +11,7 @@ data class HomeUiState(
     val isSafeMode: Boolean = false,
     val checkUpdateEnabled: Boolean = true,
     val latestVersionInfo: LatestVersionInfo = LatestVersionInfo.Empty,
+    val isChecked: Boolean = false, // 是否已检查过更新
 )
 
 @Immutable

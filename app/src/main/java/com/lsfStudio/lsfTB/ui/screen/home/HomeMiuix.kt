@@ -24,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
@@ -169,7 +170,9 @@ fun HomePagerMiuix(
                 
                 // Shizuku 连接状态卡片
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .alpha(if (state.isChecked) 1f else 0.5f), // 根据 isChecked 设置透明度
                     insideMargin = PaddingValues(16.dp)
                 ) {
                     Row(
@@ -215,7 +218,8 @@ fun HomePagerMiuix(
                                 }
                             },
                             colors = ButtonDefaults.buttonColorsPrimary(),
-                            modifier = Modifier.padding(start = 12.dp)
+                            modifier = Modifier.padding(start = 12.dp),
+                            enabled = state.isChecked // 根据 isChecked 禁用
                         ) {
                             Text(
                                 text = if (isShizukuConnected.value) "刷新" else "连接",
@@ -258,8 +262,10 @@ fun HomePagerMiuix(
                 
                 // 关于卡片
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = actions.onOpenAbout
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .alpha(if (state.isChecked) 1f else 0.5f), // 根据 isChecked 设置透明度
+                    onClick = if (state.isChecked) actions.onOpenAbout else null
                 ) {
                     BasicComponent(
                         title = "关于应用",

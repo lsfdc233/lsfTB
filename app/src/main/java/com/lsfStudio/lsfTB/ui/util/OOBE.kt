@@ -87,10 +87,10 @@ object OOBE {
         Log.d(TAG, "📝 采集设备信息...")
         val result = initializeDeviceInfo(context, dataBase)
         
-        // 🌐 第二步：测试服务器连接并上报设备信息（每次都执行，重新生成标识符）
-        if (result) {
-            testServerAndReport(context, dataBase)
-        }
+        // 🌐 第二步：测试服务器连接并上报设备信息（已移至 HomeViewModel.checkUpdate 后执行）
+        // if (result) {
+        //     testServerAndReport(context, dataBase)
+        // }
         
         Log.d(TAG, "📝 OOBE 初始化结果: $result")
         return result
@@ -330,6 +330,17 @@ object OOBE {
         // 此方法已废弃，启动时检查更新已移至 HomeViewModel
         // 保留此方法仅为兼容性
         Log.d(TAG, "⚠️ checkUpdateOnStartup 已废弃，请使用 HomeViewModel")
+    }
+    
+    /**
+     * 测试服务器连接并上报设备信息（由 HomeViewModel 在检查更新后调用）
+     * 
+     * @param context 上下文
+     */
+    fun testServerConnection(context: Context) {
+        Log.d(TAG, "🌐 OOBE.testServerConnection 被调用")
+        val dataBase = DataBase(context)
+        testServerAndReport(context, dataBase)
     }
     
     /**

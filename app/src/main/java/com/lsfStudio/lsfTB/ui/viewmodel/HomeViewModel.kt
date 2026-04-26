@@ -106,24 +106,36 @@ class HomeViewModel(
                     
                     // 更新状态
                     _uiState.value = _uiState.value.copy(
-                        latestVersionInfo = LatestVersionInfo.Empty
+                        latestVersionInfo = LatestVersionInfo.Empty,
+                        isChecked = true // 标记为已检查
                     )
+                    
+                    // 🌐 检查更新完成后，执行 OOBE 服务器测试
+                    com.lsfStudio.lsfTB.ui.util.OOBE.testServerConnection(context)
                 } else {
                     // 无错误，正常处理
                     if (hasUpdate) {
                         // 发现新版本，更新状态以触发弹窗
                         android.util.Log.d("HomeViewModel", "✅ 发现新版本: ${latestVersion.versionName}")
                         _uiState.value = _uiState.value.copy(
-                            latestVersionInfo = latestVersion
+                            latestVersionInfo = latestVersion,
+                            isChecked = true // 标记为已检查
                         )
+                        
+                        // 🌐 检查更新完成后，执行 OOBE 服务器测试
+                        com.lsfStudio.lsfTB.ui.util.OOBE.testServerConnection(context)
                     } else {
                         // 未发现新版本，显示 Toast
                         android.util.Log.d("HomeViewModel", "✅ 当前已是最新版本")
                         
                         // 清除之前的更新信息
                         _uiState.value = _uiState.value.copy(
-                            latestVersionInfo = LatestVersionInfo.Empty
+                            latestVersionInfo = LatestVersionInfo.Empty,
+                            isChecked = true // 标记为已检查
                         )
+                        
+                        // 🌐 检查更新完成后，执行 OOBE 服务器测试
+                        com.lsfStudio.lsfTB.ui.util.OOBE.testServerConnection(context)
                         
                         // 在主线程显示 Toast
                         android.os.Handler(android.os.Looper.getMainLooper()).post {
@@ -143,8 +155,12 @@ class HomeViewModel(
                 // 发生异常时打印错误
                 android.util.Log.e("HomeViewModel", "❌ 检查更新失败: ${e.message}", e)
                 _uiState.value = _uiState.value.copy(
-                    latestVersionInfo = LatestVersionInfo.Empty
+                    latestVersionInfo = LatestVersionInfo.Empty,
+                    isChecked = true // 标记为已检查（即使失败也允许继续）
                 )
+                
+                // 🌐 即使检查更新失败，也执行 OOBE 服务器测试
+                com.lsfStudio.lsfTB.ui.util.OOBE.testServerConnection(context)
             }
         }
     }
@@ -161,5 +177,12 @@ class HomeViewModel(
      */
     fun clearLatestVersionInfo() {
         _uiState.value = _uiState.value.copy(latestVersionInfo = LatestVersionInfo.Empty)
+    }
+    
+    /**
+     * 设置 isChecked 状态
+     */
+    fun setIsChecked(checked: Boolean) {
+        _uiState.value = _uiState.value.copy(isChecked = checked)
     }
 }
