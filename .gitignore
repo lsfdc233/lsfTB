@@ -26,16 +26,9 @@ Thumbs.db
 *.ear
 .kotlin/
 
-# LSF Studio 编码对照表（安全敏感）
-lsf_encoding_table.txt
-app/src/main/assets/lsf_encoding_table.bin
+# 废弃的签名模块（已迁移到 KeystoreManager）
+app/src/main/java/com/lsfStudio/lsfTB/ui/util/ApiSignature.kt
+app/src/main/java/com/lsfStudio/lsfTB/ui/util/ApiSignatureInterceptor.kt
 
-# 标识符生成脚本（包含敏感信息）
-generate_identifier.py
-generate_real_identifier.py
-identifier_formats.txt
-
-# OOBE 安全模块（开发时可缺失，自动降级到 dev 模式）
-app/src/main/java/com/lsfStudio/lsfTB/ui/util/OOBESecurity.kt
-app/src/main/java/com/lsfStudio/lsfTB/ui/util/NoiseRemover.kt
-app/src/main/java/com/lsfStudio/lsfTB/ui/util/LsfEncoder.kt
+# 服务器配置（包含敏感信息）
+app/src/main/java/com/lsfStudio/lsfTB/ui/util/ServerInfo.kt

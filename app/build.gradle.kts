@@ -112,6 +112,10 @@ android {
         val githubToken = project.findProperty("GITHUB_TOKEN")?.toString() ?: ""
         buildConfigField("String", "GITHUB_TOKEN", "\"$githubToken\"")
         
+        // 服务器 URL 配置
+        val serverUrl = project.findProperty("SERVER_URL")?.toString() ?: "https://www.lsfstudio.top/lsfStudio/api"
+        buildConfigField("String", "SERVER_URL", "\"$serverUrl\"")
+        
         // 添加构建时间
         val buildTime = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
         buildConfigField("String", "BUILD_TIME", "\"$buildTime\"")

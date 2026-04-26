@@ -60,6 +60,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import com.lsfStudio.lsfTB.R
 import com.lsfStudio.lsfTB.ui.component.dialog.ConfirmDialogMiuix
@@ -442,111 +447,8 @@ fun AboutScreenMiuix(
                             text = "验证",
                             onClick = {
                                 if (userInput.isNotBlank()) {
-                                    try {
-                                        // 正常流程：动态加载 LsfEncoder（如果存在）
-                                        val lsfEncoderClass = Class.forName("com.lsfStudio.lsfTB.ui.util.LsfEncoder")
-                                        val constructor = lsfEncoderClass.getConstructor(Context::class.java)
-                                        val encoder = constructor.newInstance(context)
-                                        val ensureMethod = lsfEncoderClass.getMethod("ensureTableLoaded")
-                                        val isLoaded = ensureMethod.invoke(encoder) as Boolean
-                                        
-                                        if (!isLoaded) {
-                                            Toast.makeText(context, "⚠️ 编码表不可用，无法验证", Toast.LENGTH_LONG).show()
-                                            Log.w("AboutMiuix", "⚠️ 编码表不可用")
-                                            showDebugDialog = false
-                                            return@TextButton
-                                        }
-                                        
-                                        // 动态加载 DataBase
-                                        val dataBaseClass = Class.forName("com.lsfStudio.lsfTB.ui.util.DataBase")
-                                        val dataBaseConstructor = dataBaseClass.getConstructor(Context::class.java)
-                                        val dataBase = dataBaseConstructor.newInstance(context)
-                                        
-                                        // 获取 OOBE.KEY_DEVICE_ID
-                                        val oobeClass = Class.forName("com.lsfStudio.lsfTB.ui.util.OOBE")
-                                        val keyDeviceIdField = oobeClass.getDeclaredField("KEY_DEVICE_ID")
-                                        val keyDeviceId = keyDeviceIdField.get(null) as String
-                                        
-                                        // 调用 getMetadataBinary
-                                        val getMetadataMethod = dataBaseClass.getMethod("getMetadataBinary", String::class.java)
-                                        val storedIdentifierBytes = getMetadataMethod.invoke(dataBase, keyDeviceId) as ByteArray?
-                                        
-                                        if (storedIdentifierBytes != null && storedIdentifierBytes.isNotEmpty()) {
-                                            val storedBinary = String(storedIdentifierBytes, Charsets.UTF_8)
-                                            
-                                            // 🔧 如果存储的是 "dev"，只接受 "dev" 输入
-                                            if (storedBinary == "dev") {
-                                                if (userInput.trim().equals("dev", ignoreCase = true)) {
-                                                    com.lsfStudio.lsfTB.ui.util.DebugShellReceiver.enableDevMode(context)
-                                                    Toast.makeText(context, "✅ 开发版验证通过！开发者模式已启用", Toast.LENGTH_LONG).show()
-                                                    Log.d("AboutMiuix", "✅ 开发版标识符验证通过")
-                                                } else {
-                                                    Toast.makeText(context, "❌ 验证失败：当前为开发版，请输入 dev", Toast.LENGTH_LONG).show()
-                                                    Log.w("AboutMiuix", "❌ 开发版但输入非 dev")
-                                                }
-                                                showDebugDialog = false
-                                                return@TextButton
-                                            }
-                                            
-                                            // 正常流程：使用反射调用 OOBESecurity.verifyUserInput
-                                            val securityClass = Class.forName("com.lsfStudio.lsfTB.ui.util.OOBESecurity")
-                                            
-                                            // OOBESecurity 是 object（单例），需要获取 INSTANCE
-                                            val instanceField = securityClass.getDeclaredField("INSTANCE")
-                                            val securityInstance = instanceField.get(null)
-                                            
-                                            val verifyMethod = securityClass.getMethod("verifyUserInput", Context::class.java, String::class.java, String::class.java)
-                                            val isMatch = verifyMethod.invoke(securityInstance, context, userInput, storedBinary) as Boolean
-                                            
-                                            if (isMatch) {
-                                                // 验证通过，启用开发者模式
-                                                com.lsfStudio.lsfTB.ui.util.DebugShellReceiver.enableDevMode(context)
-                                                Toast.makeText(context, "✅ 验证通过！开发者模式已启用", Toast.LENGTH_LONG).show()
-                                                Log.d("AboutMiuix", "✅ 设备标识符验证通过，开发者模式已启用")
-                                            } else {
-                                                Toast.makeText(context, "❌ 验证失败：标识符不匹配", Toast.LENGTH_LONG).show()
-                                                Log.w("AboutMiuix", "❌ 设备标识符验证失败")
-                                            }
-                                        } else {
-                                            Toast.makeText(context, "⚠️ 数据库中未找到设备标识符", Toast.LENGTH_LONG).show()
-                                            Log.w("AboutMiuix", "⚠️ 数据库中未找到设备标识符")
-                                        }
-                                    } catch (e: ClassNotFoundException) {
-                                        // 🔧 如果 OOBESecurity/LsfEncoder 不存在，检查是否为 dev 模式
-                                        if (userInput.trim().equals("dev", ignoreCase = true)) {
-                                            try {
-                                                // 尝试直接从数据库读取
-                                                val dataBaseClass = Class.forName("com.lsfStudio.lsfTB.ui.util.DataBase")
-                                                val dataBaseConstructor = dataBaseClass.getConstructor(Context::class.java)
-                                                val dataBase = dataBaseConstructor.newInstance(context)
-                                                
-                                                val oobeClass = Class.forName("com.lsfStudio.lsfTB.ui.util.OOBE")
-                                                val keyDeviceIdField = oobeClass.getDeclaredField("KEY_DEVICE_ID")
-                                                val keyDeviceId = keyDeviceIdField.get(null) as String
-                                                
-                                                val getMetadataMethod = dataBaseClass.getMethod("getMetadataText", String::class.java)
-                                                val storedValue = getMetadataMethod.invoke(dataBase, keyDeviceId) as String?
-                                                
-                                                if (storedValue == "dev") {
-                                                    com.lsfStudio.lsfTB.ui.util.DebugShellReceiver.enableDevMode(context)
-                                                    Toast.makeText(context, "✅ 开发版验证通过！开发者模式已启用", Toast.LENGTH_LONG).show()
-                                                    Log.d("AboutMiuix", "✅ 开发版标识符验证通过（降级模式）")
-                                                } else {
-                                                    Toast.makeText(context, "⚠️ 编码模块不可用，请使用 dev", Toast.LENGTH_LONG).show()
-                                                    Log.w("AboutMiuix", "⚠️ 编码模块类未找到且非 dev 模式")
-                                                }
-                                            } catch (e2: Exception) {
-                                                Toast.makeText(context, "⚠️ 编码模块不可用，请使用 dev", Toast.LENGTH_LONG).show()
-                                                Log.w("AboutMiuix", "⚠️ 编码模块类未找到")
-                                            }
-                                        } else {
-                                            Toast.makeText(context, "⚠️ 编码模块不可用，请使用 dev", Toast.LENGTH_LONG).show()
-                                            Log.w("AboutMiuix", "⚠️ 编码模块类未找到")
-                                        }
-                                    } catch (e: Exception) {
-                                        Toast.makeText(context, "❌ 验证错误: ${e.message}", Toast.LENGTH_LONG).show()
-                                        Log.e("AboutMiuix", "❌ 验证错误", e)
-                                    }
+                                    // 使用后端 API 进行验证
+                                    verifyIdentifierWithServer(context, userInput)
                                 } else {
                                     Toast.makeText(context, "⚠️ 请输入标识符", Toast.LENGTH_SHORT).show()
                                 }
@@ -580,4 +482,90 @@ private fun InfoText(
         color = colorScheme.onSurfaceVariantSummary,
         modifier = Modifier.padding(top = 2.dp, bottom = bottomPadding)
     )
+}
+
+/**
+ * 使用后端 API 验证标识符
+ */
+private fun verifyIdentifierWithServer(context: Context, userInput: String) {
+    CoroutineScope(Dispatchers.IO).launch {
+        try {
+            Log.d("AboutMiuix", "🔍 开始验证标识符...")
+            
+            // 获取设备 ID
+            val deviceId = com.lsfStudio.lsfTB.ui.util.KeystoreManager.getDeviceId(context)
+            
+            Log.d("AboutMiuix", "   Device ID: $deviceId")
+            Log.d("AboutMiuix", "   输入文本: $userInput")
+            
+            // 构建请求体
+            val jsonBody = org.json.JSONObject()
+            jsonBody.put("deviceId", deviceId)
+            jsonBody.put("inputText", userInput)
+            val verifyJson = jsonBody.toString()
+            
+            val requestBody = okhttp3.RequestBody.create(
+                "application/json; charset=utf-8".toMediaType(),
+                verifyJson
+            )
+            
+            // 获取服务器 URL
+            val serverInfoClass = Class.forName("com.lsfStudio.lsfTB.ui.util.ServerInfo")
+            val serverUrlField = serverInfoClass.getDeclaredField("ServerUrl")
+            serverUrlField.isAccessible = true
+            val serverUrl = serverUrlField.get(null) as String
+            
+            // 构建请求（NetworkClient 自动签名）
+            val request = com.lsfStudio.lsfTB.ui.util.NetworkClient.buildPostRequest(
+                context = context,
+                url = "$serverUrl/verify",
+                path = "/lsfStudio/api/verify",
+                body = requestBody,
+                bodyContent = verifyJson  // 传递原始 JSON 字符串用于签名
+            )
+            
+            // 执行请求
+            val response = com.lsfStudio.lsfTB.ui.util.NetworkClient.execute(request)
+            val responseBody = response.body?.string()
+            
+            if (response.isSuccessful && responseBody != null) {
+                val jsonResponse = org.json.JSONObject(responseBody)
+                val verified = jsonResponse.optBoolean("verified", false)
+                val message = jsonResponse.optString("message", "未知状态")
+                val isExact = jsonResponse.optBoolean("isExact", false)
+                
+                // 在主线程显示结果
+                withContext(Dispatchers.Main) {
+                    if (verified) {
+                        if (isExact) {
+                            Toast.makeText(context, "✅ 验证通过：$message", Toast.LENGTH_LONG).show()
+                            // 启用开发者模式
+                            com.lsfStudio.lsfTB.ui.util.DebugShellReceiver.enableDevMode(context)
+                            Log.d("AboutMiuix", "✅ 标识符验证通过，开发者模式已启用")
+                        } else {
+                            Toast.makeText(context, "⚠️ 验证通过（有缺失）：$message", Toast.LENGTH_LONG).show()
+                            com.lsfStudio.lsfTB.ui.util.DebugShellReceiver.enableDevMode(context)
+                            Log.w("AboutMiuix", "⚠️ 标识符验证通过但有缺失字符")
+                        }
+                    } else {
+                        Toast.makeText(context, "❌ 验证失败：$message", Toast.LENGTH_LONG).show()
+                        Log.w("AboutMiuix", "❌ 标识符验证失败")
+                    }
+                }
+            } else {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "❌ 验证请求失败: ${response.code}", Toast.LENGTH_LONG).show()
+                }
+                Log.e("AboutMiuix", "❌ 验证请求失败: ${response.code}, 响应: $responseBody")
+            }
+            
+            response.close()
+            
+        } catch (e: Exception) {
+            Log.e("AboutMiuix", "❌ 验证异常", e)
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, "❌ 验证错误: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
 }

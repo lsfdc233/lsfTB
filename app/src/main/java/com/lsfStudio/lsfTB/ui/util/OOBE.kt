@@ -14,6 +14,9 @@ import com.lsfStudio.lsfTB.BuildConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 
 /**
  * OOBE (Out-of-Box Experience) 模块
@@ -64,6 +67,14 @@ object OOBE {
     fun initialize(context: Context): Boolean {
         Log.d(TAG, "🔍 开始 OOBE 初始化...")
         
+        // 🛡️ 第一步：初始化 Keystore
+        try {
+            KeystoreManager.initialize(context)
+            Log.d(TAG, "✅ Keystore 初始化成功")
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Keystore 初始化失败", e)
+        }
+        
         val dataBase = DataBase(context)
         
         // 检查 MetaData 表是否存在
@@ -72,50 +83,17 @@ object OOBE {
             // DataBase 会在 onCreate 中自动创建 MetaData 表
         }
         
-        // 检查是否已初始化
-        val initialized = dataBase.getMetadataText(KEY_INITIALIZED)
+        // 采集并保存设备信息（每次都执行）
+        Log.d(TAG, "📝 采集设备信息...")
+        val result = initializeDeviceInfo(context, dataBase)
         
-        return if (initialized == "true") {
-            // 已初始化，直接通过
-            Log.d(TAG, "✅ OOBE 已初始化")
-            true
-        } else {
-            // 未初始化，采集并保存设备信息
-            Log.d(TAG, "📝 OOBE 未初始化，开始采集设备信息...")
-            val result = initializeDeviceInfo(context, dataBase)
-            
-            // 🔧 容错处理：尝试生成设备标识符，如果失败则使用 "dev" 模式
-            if (result) {
-                try {
-                    // 使用反射调用 OOBESecurity（避免编译时依赖）
-                    val securityClass = Class.forName("com.lsfStudio.lsfTB.ui.util.OOBESecurity")
-                    
-                    // OOBESecurity 是 object（单例），需要获取 INSTANCE
-                    val instanceField = securityClass.getDeclaredField("INSTANCE")
-                    val securityInstance = instanceField.get(null)
-                    
-                    val generateMethod = securityClass.getMethod("generateAndStoreDeviceIdentifier", Context::class.java)
-                    val securityResult = generateMethod.invoke(securityInstance, context) as Boolean
-                    
-                    if (securityResult) {
-                        Log.d(TAG, "✅ 设备标识符生成成功")
-                    } else {
-                        Log.w(TAG, "⚠️ 设备标识符生成失败，降级到 dev 模式")
-                        fallbackToDevMode(dataBase)
-                    }
-                } catch (e: ClassNotFoundException) {
-                    // 类不存在（文件被 .gitignore），直接使用 dev 模式
-                    Log.w(TAG, "⚠️ OOBESecurity 模块不可用，降级到 dev 模式")
-                    fallbackToDevMode(dataBase)
-                } catch (e: Exception) {
-                    Log.e(TAG, "❌ 调用 OOBESecurity 失败", e)
-                    fallbackToDevMode(dataBase)
-                }
-            }
-            
-            Log.d(TAG, "📝 OOBE 初始化结果: $result")
-            result
+        // 🌐 第二步：测试服务器连接并上报设备信息（每次都执行，重新生成标识符）
+        if (result) {
+            testServerAndReport(context, dataBase)
         }
+        
+        Log.d(TAG, "📝 OOBE 初始化结果: $result")
+        return result
     }
     
     /**
@@ -128,6 +106,217 @@ object OOBE {
             Log.d(TAG, "✅ 已设置开发版标识符: dev")
         } catch (e: Exception) {
             Log.e(TAG, "❌ 设置开发版标识符失败", e)
+        }
+    }
+    
+    /**
+     * 测试服务器连接并上报设备信息
+     * 
+     * @param context 上下文
+     * @param dataBase 数据库实例
+     */
+    private fun testServerAndReport(context: Context, dataBase: DataBase) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                // 获取服务器 URL（从 BuildConfig 或配置文件）
+                val serverUrl = getServerUrl()
+                
+                Log.d(TAG, "🌐 服务器 URL: $serverUrl")
+                
+                // 第一步：注册设备公钥（不签名）
+                val deviceId = KeystoreManager.getDeviceId(context)
+                val publicKey = KeystoreManager.exportPublicKey()
+                
+                Log.d(TAG, "🔑 注册设备公钥...")
+                Log.d(TAG, "   Device ID: $deviceId")
+                Log.d(TAG, "   Public Key Length: ${publicKey.length} chars")
+                
+                // 构建紧凑的 JSON（无空格，确保签名一致）
+                val registerJson = org.json.JSONObject().apply {
+                    put("deviceId", deviceId)
+                    put("publicKey", publicKey)
+                }.toString()
+                
+                Log.d(TAG, "📦 注册请求体: $registerJson")
+                
+                val jsonMediaType = "application/json; charset=utf-8".toMediaType()
+                val registerBody = okhttp3.RequestBody.create(jsonMediaType, registerJson)
+                
+                val registerRequest = NetworkClient.buildPostRequest(
+                    context = context,
+                    url = "$serverUrl/register",
+                    path = "/lsfStudio/api/register",
+                    body = registerBody,
+                    bodyContent = registerJson,  // 传递原始 JSON 字符串用于签名
+                    autoSign = false  // 注册接口不签名
+                )
+                
+                val registerResponse = withContext(Dispatchers.IO) {
+                    NetworkClient.execute(registerRequest)
+                }
+                
+                val registerResponseBody = registerResponse.body?.string()
+                
+                if (registerResponse.isSuccessful) {
+                    Log.d(TAG, "✅ 设备公钥注册成功")
+                    Log.d(TAG, "   响应: $registerResponseBody")
+                } else {
+                    Log.w(TAG, "⚠️ 设备公钥注册失败: ${registerResponse.code}")
+                    Log.w(TAG, "   响应: $registerResponseBody")
+                    // 继续，可能已经注册过了
+                }
+                
+                registerResponse.close()
+                
+                // 第二步：测试服务器连通性（自动签名）
+                Log.d(TAG, "📡 发送测试请求...")
+                
+                val testRequest = NetworkClient.buildGetRequest(
+                    context = context,
+                    url = "$serverUrl/test",
+                    path = "/lsfStudio/api/test"
+                )
+                
+                val testResponse = withContext(Dispatchers.IO) {
+                    NetworkClient.execute(testRequest)
+                }
+                
+                val testResponseBody = testResponse.body?.string()
+                
+                if (testResponse.isSuccessful) {
+                    Log.d(TAG, "✅ 服务器连接测试成功: ${testResponse.code}")
+                    Log.d(TAG, "   响应: $testResponseBody")
+                    
+                    // 在主线程显示 Toast
+                    android.os.Handler(android.os.Looper.getMainLooper()).post {
+                        try {
+                            MessageManager.showToast(
+                                context,
+                                "测试服务器连通性：${testResponse.code}",
+                                Toast.LENGTH_SHORT
+                            )
+                        } catch (e: Exception) {
+                            Log.e(TAG, "显示 Toast 失败", e)
+                        }
+                    }
+                } else {
+                    Log.w(TAG, "⚠️ 服务器返回错误: ${testResponse.code} ${testResponse.message}")
+                    Log.w(TAG, "   响应: $testResponseBody")
+                    
+                    android.os.Handler(android.os.Looper.getMainLooper()).post {
+                        try {
+                            MessageManager.showToast(
+                                context,
+                                "测试服务器连通性：${testResponse.code}",
+                                Toast.LENGTH_LONG
+                            )
+                        } catch (e: Exception) {
+                            Log.e(TAG, "显示 Toast 失败", e)
+                        }
+                    }
+                }
+                
+                testResponse.close()
+                
+                // 第三步：上报设备信息并接收标识符（自动签名）
+                Log.d(TAG, "📤 上报设备信息...")
+                val deviceInfo = collectDeviceInfo(context)
+                
+                // 构建紧凑的 JSON（无空格，确保签名一致）
+                val reportJson = org.json.JSONObject().apply {
+                    put("deviceId", deviceId)
+                    put("androidId", deviceInfo.androidId)
+                    put("brand", deviceInfo.brand)
+                    put("model", deviceInfo.model)
+                    put("device", deviceInfo.device)
+                    put("board", deviceInfo.board)
+                    put("hardware", deviceInfo.hardware)
+                }.toString()
+                
+                Log.d(TAG, "📦 请求体: $reportJson")
+                
+                val reportBody = okhttp3.RequestBody.create(
+                    "application/json; charset=utf-8".toMediaType(),
+                    reportJson
+                )
+                
+                val reportRequest = NetworkClient.buildPostRequest(
+                    context = context,
+                    url = "$serverUrl/report",
+                    path = "/lsfStudio/api/report",
+                    body = reportBody,
+                    bodyContent = reportJson  // 传递原始 JSON 字符串用于签名
+                )
+                
+                val reportResponse = withContext(Dispatchers.IO) {
+                    NetworkClient.execute(reportRequest)
+                }
+                
+                val reportResponseBody = reportResponse.body?.string()
+                
+                if (reportResponse.isSuccessful) {
+                    Log.d(TAG, "✅ 设备信息上报成功")
+                    Log.d(TAG, "   响应: $reportResponseBody")
+                    
+                    // 解析响应，获取二进制标识符
+                    try {
+                        val jsonResponse = org.json.JSONObject(reportResponseBody ?: "{}")
+                        val binaryIdentifierBase64 = jsonResponse.optString("binaryIdentifier", "")
+                        
+                        if (binaryIdentifierBase64.isNotEmpty()) {
+                            Log.d(TAG, "🔑 接收到二进制标识符")
+                            
+                            // 解码 Base64
+                            val binaryIdentifier = android.util.Base64.decode(binaryIdentifierBase64, android.util.Base64.DEFAULT)
+                            
+                            // 通过 DataBase 存储到数据库
+                            dataBase.insertOrReplaceMetadata(KEY_DEVICE_ID, binaryIdentifier)
+                            
+                            Log.d(TAG, "✅ 标识符已存储到数据库")
+                            Log.d(TAG, "   长度: ${binaryIdentifier.size} bytes")
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "❌ 解析标识符失败", e)
+                    }
+                } else {
+                    Log.w(TAG, "⚠️ 设备信息上报失败: ${reportResponse.code}")
+                    Log.w(TAG, "   响应: $reportResponseBody")
+                }
+                
+                reportResponse.close()
+                
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ 服务器通信失败", e)
+                
+                // 在主线程显示 Toast
+                android.os.Handler(android.os.Looper.getMainLooper()).post {
+                    try {
+                        MessageManager.showToast(
+                            context,
+                            "服务器通信失败",
+                            Toast.LENGTH_LONG
+                        )
+                    } catch (e: Exception) {
+                        Log.e(TAG, "显示 Toast 失败", e)
+                    }
+                }
+            }
+        }
+    }
+    
+    /**
+     * 获取服务器 URL
+     * 从 BuildConfig 读取，避免硬编码和反射
+     */
+    private fun getServerUrl(): String {
+        return try {
+            // 尝试从 BuildConfig 读取
+            val field = BuildConfig::class.java.getDeclaredField("SERVER_URL")
+            field.get(null) as String
+        } catch (e: Exception) {
+            // 降级到默认值
+            Log.w(TAG, "⚠️ 未配置 SERVER_URL，使用默认值")
+            "https://www.lsfstudio.top/lsfStudio/api"
         }
     }
     

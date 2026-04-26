@@ -9,8 +9,11 @@ import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody
 import okhttp3.Response
+import okio.Buffer
 import java.io.IOException
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 /**
@@ -101,19 +104,33 @@ object NetworkClient {
     }
     
     /**
-     * 构建通用GET请求
+     * 构建通用GET请求（自动添加签名）
      * 
+     * @param context 上下文（用于获取设备ID和签名）
      * @param url 请求URL
+     * @param path API路径（用于签名，如 /lsfStudio/api/test）
      * @param headers 额外的请求头（可选）
+     * @param autoSign 是否自动添加签名（默认true）
      * @return 配置好的Request对象
      */
     fun buildGetRequest(
+        context: Context,
         url: String,
-        headers: Map<String, String> = emptyMap()
+        path: String,
+        headers: Map<String, String> = emptyMap(),
+        autoSign: Boolean = true
     ): Request {
         val builder = Request.Builder()
             .url(url)
             .get()
+        
+        // 如果需要自动签名，添加签名头
+        if (autoSign) {
+            val signatureHeaders = generateSignatureHeaders(context, "GET", path, "")
+            signatureHeaders.forEach { (key, value) ->
+                builder.addHeader(key, value)
+            }
+        }
         
         // 添加自定义请求头
         headers.forEach { (key, value) ->
@@ -124,21 +141,39 @@ object NetworkClient {
     }
     
     /**
-     * 构建通用POST请求
+     * 构建通用POST请求（自动添加签名）
      * 
+     * @param context 上下文（用于获取设备ID和签名）
      * @param url 请求URL
+     * @param path API路径（用于签名，如 /lsfStudio/api/report）
      * @param body 请求体
+     * @param bodyContent 请求体内容字符串（用于签名，如果为null则从body中读取）
      * @param headers 额外的请求头（可选）
+     * @param autoSign 是否自动添加签名（默认true）
      * @return 配置好的Request对象
      */
     fun buildPostRequest(
+        context: Context,
         url: String,
-        body: okhttp3.RequestBody,
-        headers: Map<String, String> = emptyMap()
+        path: String,
+        body: RequestBody,
+        bodyContent: String? = null,
+        headers: Map<String, String> = emptyMap(),
+        autoSign: Boolean = true
     ): Request {
         val builder = Request.Builder()
             .url(url)
             .post(body)
+        
+        // 如果需要自动签名，添加签名头
+        if (autoSign) {
+            // 使用提供的 bodyContent 或从 body 中读取
+            val content = bodyContent ?: readRequestBody(body)
+            val signatureHeaders = generateSignatureHeaders(context, "POST", path, content)
+            signatureHeaders.forEach { (key, value) ->
+                builder.addHeader(key, value)
+            }
+        }
         
         // 添加自定义请求头
         headers.forEach { (key, value) ->
@@ -168,6 +203,63 @@ object NetworkClient {
             true
         } catch (e: Exception) {
             false
+        }
+    }
+    
+    // ==================== 私有辅助函数 ====================
+    
+    /**
+     * 生成签名请求头
+     * 
+     * @param context 上下文
+     * @param method HTTP方法（GET/POST）
+     * @param path API路径
+     * @param body 请求体内容（GET为空字符串）
+     * @return 签名请求头Map
+     */
+    private fun generateSignatureHeaders(
+        context: Context,
+        method: String,
+        path: String,
+        body: String
+    ): Map<String, String> {
+        val timestamp = System.currentTimeMillis().toString()
+        val nonce = UUID.randomUUID().toString()
+        val deviceId = KeystoreManager.getDeviceId(context)
+        
+        // 生成签名字符串
+        val stringToSign = "$method\n$path\n$body\n$timestamp\n$nonce"
+        val signature = KeystoreManager.sign(stringToSign)
+        
+        Log.d(TAG, "🔑 自动生成签名")
+        Log.d(TAG, "   Method: $method")
+        Log.d(TAG, "   Path: $path")
+        Log.d(TAG, "   Timestamp: $timestamp")
+        Log.d(TAG, "   Nonce: $nonce")
+        Log.d(TAG, "   Signature: ${signature.take(32)}...")
+        
+        return mapOf(
+            "X-Timestamp" to timestamp,
+            "X-Nonce" to nonce,
+            "X-Signature" to signature,
+            "X-Key-Id" to deviceId
+        )
+    }
+    
+    /**
+     * 读取RequestBody内容（用于签名）
+     * 
+     * @param body 请求体
+     * @return 请求体字符串内容
+     */
+    private fun readRequestBody(body: RequestBody): String {
+        return try {
+            val buffer = Buffer()
+            body.writeTo(buffer)
+            buffer.readUtf8()
+        } catch (e: Exception) {
+            Log.w(TAG, "⚠️ 读取请求体失败", e)
+            ""
         }
     }
 }
