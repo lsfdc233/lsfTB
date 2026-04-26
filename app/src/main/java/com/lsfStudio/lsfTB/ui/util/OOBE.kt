@@ -321,88 +321,15 @@ object OOBE {
     }
     
     /**
-     * 启动时检查更新（在 OOBE 完成后调用）
+     * 启动时检查更新（已废弃，移至 HomeViewModel）
      * 
      * @param context 上下文
      * @param checkUpdateEnabled 用户是否启用了自动检查更新
      */
     fun checkUpdateOnStartup(context: Context, checkUpdateEnabled: Boolean) {
-        if (!checkUpdateEnabled) {
-            Log.d(TAG, "⚙️ 用户禁用了自动检查更新")
-            return
-        }
-        
-        Log.d(TAG, "🔄 启动时检查更新...")
-        
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                // 执行检查更新
-                val latestVersion = checkNewVersion(context)
-                
-                Log.d(TAG, "获取到最新版本: ${latestVersion.versionName}, versionCode: ${latestVersion.versionCode}")
-                
-                // 获取当前版本代码
-                val currentVersionCode = BuildConfig.VERSION_CODE
-                
-                Log.d(TAG, "当前版本 code: $currentVersionCode")
-                
-                // 比较版本号
-                val hasUpdate = latestVersion.versionCode > currentVersionCode
-                
-                Log.d(TAG, "是否有更新: $hasUpdate")
-                
-                // 检查是否有错误信息
-                if (latestVersion.errorCode != 0 || latestVersion.errorMessage.isNotEmpty()) {
-                    // 有错误，显示错误 Toast
-                    Log.e(TAG, "检查更新错误: ${latestVersion.errorCode} - ${latestVersion.errorMessage}")
-                    
-                    val toastMessage = if (latestVersion.errorCode > 0) {
-                        "${latestVersion.errorCode}: ${latestVersion.errorMessage}"
-                    } else {
-                        latestVersion.errorMessage
-                    }
-                    
-                    // 在主线程显示 Toast（使用MessageManager自动适配超级岛）
-                    android.os.Handler(android.os.Looper.getMainLooper()).post {
-                        try {
-                            MessageManager.showToast(
-                                context,
-                                toastMessage,
-                                Toast.LENGTH_LONG
-                            )
-                        } catch (e: Exception) {
-                            Log.e(TAG, "显示 Toast 失败", e)
-                        }
-                    }
-                } else {
-                    // 无错误，正常处理
-                    if (hasUpdate) {
-                        // 发现新版本，保持 latestVersionInfo 不变，由 UI 层弹窗显示
-                        Log.d(TAG, "发现新版本: ${latestVersion.versionName}")
-                        // 可以考虑使用 LiveData、Flow 或者广播
-                    } else {
-                        // 未发现新版本，显示 Toast
-                        Log.d(TAG, "当前已是最新版本")
-                        
-                        // 在主线程显示 Toast
-                        android.os.Handler(android.os.Looper.getMainLooper()).post {
-                            try {
-                                MessageManager.showToast(
-                                    context,
-                                    "当前已是最新版本",
-                                    Toast.LENGTH_SHORT
-                                )
-                            } catch (e: Exception) {
-                                Log.e(TAG, "显示 Toast 失败", e)
-                            }
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                // 发生异常时打印错误
-                Log.e(TAG, "检查更新失败: ${e.message}", e)
-            }
-        }
+        // 此方法已废弃，启动时检查更新已移至 HomeViewModel
+        // 保留此方法仅为兼容性
+        Log.d(TAG, "⚠️ checkUpdateOnStartup 已废弃，请使用 HomeViewModel")
     }
     
     /**

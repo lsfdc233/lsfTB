@@ -17,9 +17,9 @@ fun HomePager(
     bottomInnerPadding: Dp,
     isCurrentPage: Boolean = true
 ) {
-    val viewModel = viewModel<HomeViewModel>()
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val viewModel = viewModel<HomeViewModel> { HomeViewModel(context) }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     if (isCurrentPage) {
         LaunchedEffect(Unit) {
@@ -31,6 +31,8 @@ fun HomePager(
         onSettingsClick = { navigator.push(Route.Settings) },
         onAboutClick = { navigator.push(Route.About) },
         onOpenAbout = { navigator.push(Route.About) },
+        onCheckUpdate = { ctx, enabled -> viewModel.checkUpdate(ctx, enabled) },
+        onClearLatestVersionInfo = { viewModel.clearLatestVersionInfo() },
     )
 
     HomePagerMiuix(

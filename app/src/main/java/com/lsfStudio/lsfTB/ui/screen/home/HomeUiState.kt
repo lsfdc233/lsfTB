@@ -18,4 +18,6 @@ data class HomeActions(
     val onSettingsClick: () -> Unit,
     val onAboutClick: () -> Unit,
     val onOpenAbout: () -> Unit,
+    val onCheckUpdate: (android.content.Context, Boolean) -> Unit, // 检查更新
+    val onClearLatestVersionInfo: () -> Unit, // 清除最新版本信息
 )

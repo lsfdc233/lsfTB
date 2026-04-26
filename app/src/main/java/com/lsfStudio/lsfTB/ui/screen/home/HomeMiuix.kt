@@ -17,6 +17,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -27,13 +32,18 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.widget.Toast
+import com.lsfStudio.lsfTB.ui.component.dialog.ConfirmDialogMiuix
 import com.lsfStudio.lsfTB.ui.theme.LocalEnableBlur
 import com.lsfStudio.lsfTB.ui.util.BlurredBar
+import com.lsfStudio.lsfTB.ui.util.DownloadManager
 import com.lsfStudio.lsfTB.ui.util.MessageManager
 import com.lsfStudio.lsfTB.ui.util.ShizukuUtil
 import com.lsfStudio.lsfTB.ui.util.rememberBlurBackdrop
 import com.lsfStudio.lsfTB.ui.util.rememberShizukuConnectionState
 import com.lsfStudio.lsfTB.ui.util.HapticFeedbackUtil
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
@@ -68,6 +78,14 @@ fun HomePagerMiuix(
     
     // Shizuku 连接状态
     val isShizukuConnected = rememberShizukuConnectionState()
+    
+    // 🔄 启动时检查更新
+    LaunchedEffect(Unit) {
+        android.util.Log.d("HomeMiuix", "📱 Home 页面加载，准备检查更新")
+        // 延迟 1 秒后检查更新，确保页面已加载
+        kotlinx.coroutines.delay(1000)
+        actions.onCheckUpdate(context, state.checkUpdateEnabled)
+    }
 
     Scaffold(
         topBar = {
@@ -80,6 +98,63 @@ fun HomePagerMiuix(
         popupHost = { },
         contentWindowInsets = WindowInsets.systemBars.add(WindowInsets.displayCutout).only(WindowInsetsSides.Horizontal)
     ) { innerPadding ->
+        // 🔄 更新对话框（发现新版本时显示）
+        if (state.latestVersionInfo.versionCode > 0) {
+            ConfirmDialogMiuix(
+                title = "发现新版本",
+                content = if (state.latestVersionInfo.changelog.isNotEmpty()) {
+                    "${state.latestVersionInfo.versionName}\n\n${state.latestVersionInfo.changelog}"
+                } else {
+                    state.latestVersionInfo.versionName
+                },
+                isMarkdown = true,
+                confirmText = "立即下载",
+                dismissText = "取消",
+                onConfirm = {
+                    android.util.Log.d("HomeMiuix", "🚀 用户点击下载新版本: ${state.latestVersionInfo.versionName}")
+                    
+                    // 清除更新信息
+                    actions.onClearLatestVersionInfo()
+                    
+                    // 启动下载
+                    CoroutineScope(Dispatchers.IO).launch {
+                        try {
+                            val fileName = "lsfTB_${state.latestVersionInfo.versionName.replace(".", "_")}.apk"
+                            DownloadManager.download(
+                                context = context,
+                                url = state.latestVersionInfo.downloadUrl,
+                                fileName = fileName,
+                                versionName = state.latestVersionInfo.versionName,
+                                callback = object : DownloadManager.DownloadCallback {
+                                    override fun onProgress(progress: Int, speed: String, remainingTime: String) {
+                                        android.util.Log.d("HomeMiuix", "下载进度: $progress% | 速度: $speed | 剩余: $remainingTime")
+                                    }
+                                    
+                                    override fun onSuccess(file: java.io.File) {
+                                        android.util.Log.d("HomeMiuix", "✅ 下载成功: ${file.absolutePath}")
+                                    }
+                                    
+                                    override fun onError(error: String) {
+                                        android.util.Log.e("HomeMiuix", "❌ 下载失败: $error")
+                                    }
+                                }
+                            )
+                        } catch (e: Exception) {
+                            android.util.Log.e("HomeMiuix", "❌ 启动下载失败", e)
+                        }
+                    }
+                },
+                onDismiss = {
+                    android.util.Log.d("HomeMiuix", "用户取消更新")
+                    actions.onClearLatestVersionInfo()
+                },
+                showDialog = remember(state.latestVersionInfo.versionCode) { mutableStateOf(state.latestVersionInfo.versionCode > 0) }.also { dialogState ->
+                    LaunchedEffect(state.latestVersionInfo.versionCode) {
+                        dialogState.value = state.latestVersionInfo.versionCode > 0
+                    }
+                }
+            )
+        }
         LazyColumn(
             modifier = Modifier
                 .nestedScroll(scrollBehavior.nestedScrollConnection)
