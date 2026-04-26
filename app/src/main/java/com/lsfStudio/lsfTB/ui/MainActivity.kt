@@ -186,6 +186,45 @@ class MainActivity : ComponentActivity() {
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
             val appSettings = uiState.appSettings
             
+            // 🔄 全局更新对话框状态
+            var showUpdateDialog by remember { mutableStateOf(false) }
+            var updateVersionName by remember { mutableStateOf("") }
+            var updateVersionCode by remember { mutableStateOf(0) }
+            var updateDownloadUrl by remember { mutableStateOf("") }
+            var updateChangelog by remember { mutableStateOf("") }
+            
+            // 监听更新广播
+            DisposableEffect(Unit) {
+                val receiver = object : android.content.BroadcastReceiver() {
+                    override fun onReceive(context: Context?, intent: android.content.Intent?) {
+                        if (intent?.action == "com.lsfstudio.lsfTB.ACTION_SHOW_UPDATE_DIALOG") {
+                            // 从 SharedPreferences 读取更新信息
+                            val prefs = applicationContext.getSharedPreferences("update_info", Context.MODE_PRIVATE)
+                            val hasUpdate = prefs.getBoolean("has_update", false)
+                            
+                            if (hasUpdate) {
+                                updateVersionName = prefs.getString("version_name", "") ?: ""
+                                updateVersionCode = prefs.getInt("version_code", 0)
+                                updateDownloadUrl = prefs.getString("download_url", "") ?: ""
+                                updateChangelog = prefs.getString("changelog", "") ?: ""
+                                showUpdateDialog = true
+                                
+                                Log.d("MainActivity", "📱 收到更新广播，显示更新对话框")
+                                Log.d("MainActivity", "   版本: $updateVersionName ($updateVersionCode)")
+                                Log.d("MainActivity", "   下载地址: $updateDownloadUrl")
+                            }
+                        }
+                    }
+                }
+                
+                val filter = android.content.IntentFilter("com.lsfstudio.lsfTB.ACTION_SHOW_UPDATE_DIALOG")
+                registerReceiver(receiver, filter)
+                
+                onDispose {
+                    unregisterReceiver(receiver)
+                }
+            }
+            
             // 计算当前是否为深色模式
             // 优先级：用户设置 > 系统设置
             val darkMode = appSettings.colorMode.isDark || (appSettings.colorMode.isSystem && isSystemInDarkTheme())
@@ -406,6 +445,72 @@ class MainActivity : ComponentActivity() {
 
                     // 使用Scaffold作为根布局
                     Scaffold { navDisplay() }
+                    
+                    // 🔄 全局更新对话框
+                    if (showUpdateDialog) {
+                        val context = LocalContext.current
+                        com.lsfStudio.lsfTB.ui.screen.about.ConfirmDialogMiuix(
+                            title = "发现新版本",
+                            content = if (updateChangelog.isNotEmpty()) {
+                                "$updateVersionName\n\n$updateChangelog"
+                            } else {
+                                updateVersionName
+                            },
+                            isMarkdown = true,
+                            confirmText = "立即下载",
+                            dismissText = "取消",
+                            onConfirm = {
+                                // 开始下载
+                                android.util.Log.d("MainActivity", "📥 开始下载更新: $updateDownloadUrl")
+                                com.lsfStudio.lsfTB.ui.util.DownloadManager.download(
+                                    context = context,
+                                    url = updateDownloadUrl,
+                                    fileName = "lsfTB_${updateVersionName}.apk",
+                                    versionName = updateVersionName,
+                                    callback = object : com.lsfStudio.lsfTB.ui.util.DownloadManager.DownloadCallback {
+                                        override fun onProgress(progress: Int, speed: String, remainingTime: String) {
+                                            android.util.Log.d("MainActivity", "下载进度: $progress%")
+                                        }
+                                        
+                                        override fun onSuccess(file: java.io.File) {
+                                            android.util.Log.d("MainActivity", "✅ 下载成功: ${file.absolutePath}")
+                                            showUpdateDialog = false
+                                            // 清除更新信息
+                                            val prefs = applicationContext.getSharedPreferences("update_info", Context.MODE_PRIVATE)
+                                            prefs.edit().clear().apply()
+                                        }
+                                        
+                                        override fun onError(error: String) {
+                                            android.util.Log.e("MainActivity", "❌ 下载失败: $error")
+                                            // 显示错误提示
+                                            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                                                try {
+                                                    com.lsfStudio.lsfTB.ui.util.MessageManager.showToast(
+                                                        context,
+                                                        "下载失败: $error",
+                                                        android.widget.Toast.LENGTH_LONG
+                                                    )
+                                                } catch (e: Exception) {
+                                                    android.util.Log.e("MainActivity", "显示 Toast 失败", e)
+                                                }
+                                            }
+                                        }
+                                    }
+                                )
+                            },
+                            onDismiss = {
+                                showUpdateDialog = false
+                                // 清除更新信息
+                                val prefs = applicationContext.getSharedPreferences("update_info", Context.MODE_PRIVATE)
+                                prefs.edit().clear().apply()
+                            },
+                            showDialog = remember(showUpdateDialog) { mutableStateOf(showUpdateDialog) }.also { dialogState ->
+                                androidx.compose.runtime.LaunchedEffect(showUpdateDialog) {
+                                    dialogState.value = showUpdateDialog
+                                }
+                            }
+                        )
+                    }
                 }
             }
         }

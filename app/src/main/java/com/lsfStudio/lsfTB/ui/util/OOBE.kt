@@ -377,12 +377,33 @@ object OOBE {
                 } else {
                     // 无错误，正常处理
                     if (hasUpdate) {
-                        // 发现新版本，保持 latestVersionInfo 不变，由 UI 层弹窗显示
+                        // 发现新版本，存储到全局状态
                         Log.d(TAG, "发现新版本: ${latestVersion.versionName}")
-                        // 可以考虑使用 LiveData、Flow 或者广播
+                        
+                        // 将最新版本信息存储到 SharedPreferences，供 About 页面读取
+                        val prefs = context.getSharedPreferences("update_info", Context.MODE_PRIVATE)
+                        prefs.edit().apply {
+                            putString("version_name", latestVersion.versionName)
+                            putInt("version_code", latestVersion.versionCode)
+                            putString("download_url", latestVersion.downloadUrl)
+                            putString("changelog", latestVersion.changelog)
+                            putBoolean("has_update", true)
+                            apply()
+                        }
+                        
+                        Log.d(TAG, "✅ 更新信息已存储到 SharedPreferences")
+                        
+                        // 发送广播通知 MainActivity 显示更新对话框
+                        val intent = android.content.Intent("com.lsfstudio.lsfTB.ACTION_SHOW_UPDATE_DIALOG")
+                        context.sendBroadcast(intent)
+                        
                     } else {
                         // 未发现新版本，显示 Toast
                         Log.d(TAG, "当前已是最新版本")
+                        
+                        // 清除之前的更新信息
+                        val prefs = context.getSharedPreferences("update_info", Context.MODE_PRIVATE)
+                        prefs.edit().clear().apply()
                         
                         // 在主线程显示 Toast
                         android.os.Handler(android.os.Looper.getMainLooper()).post {
