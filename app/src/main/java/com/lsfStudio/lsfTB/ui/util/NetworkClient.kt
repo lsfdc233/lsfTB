@@ -1,8 +1,13 @@
 package com.lsfStudio.lsfTB.ui.util
 
 import android.content.Context
+import android.content.pm.PackageManager
+import android.content.pm.Signature
+import android.util.Base64
 import android.util.Log
 import com.lsfStudio.lsfTB.BuildConfig
+import com.lsfStudio.lsfTB.security.ChallengeResponseSigner
+import com.lsfStudio.lsfTB.security.IntegrityChecker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.Call
@@ -13,6 +18,7 @@ import okhttp3.RequestBody
 import okhttp3.Response
 import okio.Buffer
 import java.io.IOException
+import java.security.MessageDigest
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
@@ -104,7 +110,108 @@ object NetworkClient {
     }
     
     /**
-     * 构建通用GET请求（自动添加签名）
+     * 构建通用GET请求（自动添加签名和挑战-响应）
+     * 
+     * @param context 上下文（用于获取设备ID和签名）
+     * @param url 请求URL
+     * @param path API路径（用于签名，如 /lsfStudio/api/test）
+     * @param headers 额外的请求头（可选）
+     * @param useChallengeResponse 是否使用挑战-响应机制（默认true）
+     * @return 配置好的Request对象
+     */
+    suspend fun buildGetRequestWithChallenge(
+        context: Context,
+        url: String,
+        path: String,
+        headers: Map<String, String> = emptyMap(),
+        useChallengeResponse: Boolean = true
+    ): Request {
+        val builder = Request.Builder()
+            .url(url)
+            .get()
+        
+        // 添加基础签名头
+        val signatureHeaders = generateSignatureHeaders(context, "GET", path, "")
+        signatureHeaders.forEach { (key, value) ->
+            builder.addHeader(key, value)
+        }
+        
+        // 如果使用挑战-响应，获取并添加挑战签名
+        if (useChallengeResponse) {
+            val challengeData = getChallengeAndSign(context)
+            if (challengeData != null) {
+                challengeData.forEach { (key, value) ->
+                    builder.addHeader(key, value)
+                }
+                Log.d(TAG, "✅ 已添加挑战-响应头")
+            } else {
+                Log.w(TAG, "⚠️ 挑战-响应失败，继续使用基础验证")
+            }
+        }
+        
+        // 添加自定义请求头
+        headers.forEach { (key, value) ->
+            builder.addHeader(key, value)
+        }
+        
+        return builder.build()
+    }
+    
+    /**
+     * 构建通用POST请求（自动添加签名和挑战-响应）
+     * 
+     * @param context 上下文（用于获取设备ID和签名）
+     * @param url 请求URL
+     * @param path API路径（用于签名，如 /lsfStudio/api/report）
+     * @param body 请求体
+     * @param bodyContent 请求体内容字符串（用于签名，如果为null则从body中读取）
+     * @param headers 额外的请求头（可选）
+     * @param useChallengeResponse 是否使用挑战-响应机制（默认true）
+     * @return 配置好的Request对象
+     */
+    suspend fun buildPostRequestWithChallenge(
+        context: Context,
+        url: String,
+        path: String,
+        body: RequestBody,
+        bodyContent: String? = null,
+        headers: Map<String, String> = emptyMap(),
+        useChallengeResponse: Boolean = true
+    ): Request {
+        val builder = Request.Builder()
+            .url(url)
+            .post(body)
+        
+        // 添加基础签名头
+        val content = bodyContent ?: readRequestBody(body)
+        val signatureHeaders = generateSignatureHeaders(context, "POST", path, content)
+        signatureHeaders.forEach { (key, value) ->
+            builder.addHeader(key, value)
+        }
+        
+        // 如果使用挑战-响应，获取并添加挑战签名
+        if (useChallengeResponse) {
+            val challengeData = getChallengeAndSign(context)
+            if (challengeData != null) {
+                challengeData.forEach { (key, value) ->
+                    builder.addHeader(key, value)
+                }
+                Log.d(TAG, "✅ 已添加挑战-响应头")
+            } else {
+                Log.w(TAG, "⚠️ 挑战-响应失败，继续使用基础验证")
+            }
+        }
+        
+        // 添加自定义请求头
+        headers.forEach { (key, value) ->
+            builder.addHeader(key, value)
+        }
+        
+        return builder.build()
+    }
+    
+    /**
+     * 构建通用GET请求（自动添加签名）- 旧版本，保持兼容
      * 
      * @param context 上下文（用于获取设备ID和签名）
      * @param url 请求URL
@@ -141,7 +248,7 @@ object NetworkClient {
     }
     
     /**
-     * 构建通用POST请求（自动添加签名）
+     * 构建通用POST请求（自动添加签名）- 旧版本，保持兼容
      * 
      * @param context 上下文（用于获取设备ID和签名）
      * @param url 请求URL
@@ -206,6 +313,100 @@ object NetworkClient {
         }
     }
     
+    /**
+     * 获取挑战并签名（用于增强验证）
+     * 
+     * @param context 上下文
+     * @return 包含挑战和签名的Map，失败返回null
+     */
+    suspend fun getChallengeAndSign(context: Context): Map<String, String>? {
+        return withContext(Dispatchers.IO) {
+            try {
+                Log.d(TAG, "🔐 开始挑战-响应流程")
+                
+                // 1. 完整性校验（自动初始化）
+                if (!IntegrityChecker.verifyApkIntegrity(context)) {
+                    Log.e(TAG, "❌ APK完整性校验失败，中止挑战-响应")
+                    return@withContext null
+                }
+                Log.d(TAG, "✅ APK完整性校验通过")
+                
+                // 2. 从服务器获取挑战
+                val challengeUrl = BuildConfig.SERVER_URL + "/challenge"
+                val challengeRequest = Request.Builder()
+                    .url(challengeUrl)
+                    .get()
+                    .build()
+                
+                val challengeResponse = execute(challengeRequest)
+                
+                if (!challengeResponse.isSuccessful) {
+                    Log.e(TAG, "❌ 获取挑战失败: ${challengeResponse.code}")
+                    challengeResponse.close()
+                    return@withContext null
+                }
+                
+                val responseBody = challengeResponse.body?.string()
+                challengeResponse.close()
+                
+                if (responseBody.isNullOrEmpty()) {
+                    Log.e(TAG, "❌ 挑战响应为空")
+                    return@withContext null
+                }
+                
+                // 解析挑战（简单JSON解析）
+                val challenge = extractChallengeFromJson(responseBody)
+                
+                if (challenge.isNullOrEmpty()) {
+                    Log.e(TAG, "❌ 无法解析挑战")
+                    return@withContext null
+                }
+                
+                Log.d(TAG, "✅ 获取到挑战: ${challenge.take(16)}...")
+                
+                // 3. 验证挑战格式
+                if (!ChallengeResponseSigner.isValidChallenge(challenge)) {
+                    Log.e(TAG, "❌ 挑战格式无效")
+                    return@withContext null
+                }
+                
+                // 4. 对挑战进行签名
+                val signature = ChallengeResponseSigner.signChallenge(challenge)
+                
+                if (signature.isNullOrEmpty()) {
+                    Log.e(TAG, "❌ 挑战签名失败")
+                    return@withContext null
+                }
+                
+                Log.d(TAG, "✅ 挑战-响应完成")
+                
+                mapOf(
+                    "X-Challenge" to challenge,
+                    "X-Challenge-Signature" to signature
+                )
+                
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ 挑战-响应流程异常", e)
+                null
+            }
+        }
+    }
+    
+    /**
+     * 从JSON响应中提取挑战
+     */
+    private fun extractChallengeFromJson(json: String): String? {
+        return try {
+            // 简单的JSON解析，提取 "challenge" 字段
+            val pattern = Regex("\"challenge\"\\s*:\\s*\"([^\"]+)\"")
+            val match = pattern.find(json)
+            match?.groupValues?.get(1)
+        } catch (e: Exception) {
+            Log.e(TAG, "解析挑战JSON失败", e)
+            null
+        }
+    }
+    
     // ==================== 私有辅助函数 ====================
     
     /**
@@ -226,6 +427,7 @@ object NetworkClient {
         val timestamp = System.currentTimeMillis().toString()
         val nonce = UUID.randomUUID().toString()
         val deviceId = KeystoreManager.getDeviceId(context)
+        val apkSignature = getApkSignature(context)
         
         // 生成签名字符串
         val stringToSign = "$method\n$path\n$body\n$timestamp\n$nonce"
@@ -237,12 +439,14 @@ object NetworkClient {
         Log.d(TAG, "   Timestamp: $timestamp")
         Log.d(TAG, "   Nonce: $nonce")
         Log.d(TAG, "   Signature: ${signature.take(32)}...")
+        Log.d(TAG, "   APK Signature: $apkSignature")
         
         return mapOf(
             "X-Timestamp" to timestamp,
             "X-Nonce" to nonce,
             "X-Signature" to signature,
-            "X-Key-Id" to deviceId
+            "X-Key-Id" to deviceId,
+            "X-APK-Signature" to apkSignature
         )
     }
     
@@ -260,6 +464,40 @@ object NetworkClient {
         } catch (e: Exception) {
             Log.w(TAG, "⚠️ 读取请求体失败", e)
             ""
+        }
+    }
+    
+    /**
+     * 获取APK签名哈希（SHA-256）
+     * 
+     * @param context 上下文
+     * @return APK签名的Base64编码字符串
+     */
+    private fun getApkSignature(context: Context): String {
+        return try {
+            val packageInfo = context.packageManager.getPackageInfo(
+                context.packageName,
+                PackageManager.GET_SIGNATURES
+            )
+            
+            val signatures = packageInfo.signatures
+            if (signatures != null && signatures.isNotEmpty()) {
+                val signature = signatures[0]
+                val signatureBytes = signature.toByteArray()
+                
+                // 计算 SHA-256 哈希
+                val md = MessageDigest.getInstance("SHA-256")
+                val digest = md.digest(signatureBytes)
+                
+                // 转换为 Base64 字符串
+                Base64.encodeToString(digest, Base64.NO_WRAP)
+            } else {
+                Log.w(TAG, "⚠️ 未找到APK签名")
+                "unknown"
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ 获取APK签名失败", e)
+            "error"
         }
     }
 }

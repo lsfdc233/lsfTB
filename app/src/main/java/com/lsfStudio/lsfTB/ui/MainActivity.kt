@@ -443,8 +443,8 @@ fun MainScreen() {
     // 获取浮动底栏模糊效果开关状态
     val enableFloatingBottomBarBlur = LocalEnableFloatingBottomBarBlur.current
     
-    // 创建Pager状态，共4个页面
-    val pagerState = rememberPagerState(pageCount = { 4 })
+    // 创建Pager状态，共5个页面
+    val pagerState = rememberPagerState(pageCount = { 5 })
     // 创建主页Pager状态管理器
     val mainPagerState = rememberMainPagerState(pagerState)
     
@@ -502,10 +502,12 @@ fun MainScreen() {
                             0 -> HomePager(navController, bottomInnerPadding, isCurrentPage)
                             // 页面1：2FA 双因素认证
                             1 -> TwoFAScreen()
-                            // 页面2：私密保险箱
-                            2 -> VaultScreen()
-                            // 页面3：设置页
-                            3 -> SettingPager(navController, bottomInnerPadding)
+                            // 页面2：更多功能
+                            2 -> com.lsfStudio.lsfTB.ui.screen.morefeatures.MoreFeaturesScreen()
+                            // 页面3：私密保险箱
+                            3 -> VaultScreen()
+                            // 页面4：设置页
+                            4 -> SettingPager(navController, bottomInnerPadding)
                         }
                     }
                 }

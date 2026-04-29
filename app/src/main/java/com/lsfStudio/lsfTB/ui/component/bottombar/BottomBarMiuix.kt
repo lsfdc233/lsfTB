@@ -33,6 +33,7 @@ import top.yukonga.miuix.kmp.icon.extended.ChevronForward
 import top.yukonga.miuix.kmp.icon.extended.Lock
 import top.yukonga.miuix.kmp.icon.extended.Folder
 import top.yukonga.miuix.kmp.icon.extended.Settings
+import top.yukonga.miuix.kmp.icon.extended.MoreCircle
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -119,6 +120,7 @@ enum class BottomBarDestination(
 ) {
     Home("主页", MiuixIcons.ChevronForward),  // Miuix 没有 Cottage，使用 ChevronForward 临时替代
     TwoFA("认证", MiuixIcons.Lock),  // Shield → Lock
+    MoreFeatures("更多功能", MiuixIcons.MoreCircle),  // 新增：更多功能
     Vault("保险箱", MiuixIcons.Folder),
     Setting("设置", MiuixIcons.Settings)
 }

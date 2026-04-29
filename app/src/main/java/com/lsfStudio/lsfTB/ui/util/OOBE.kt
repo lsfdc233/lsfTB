@@ -75,6 +75,14 @@ object OOBE {
             Log.e(TAG, "❌ Keystore 初始化失败", e)
         }
         
+        // 🔒 第二步：初始化完整性校验器（获取当前 APK 签名哈希）
+        try {
+            com.lsfStudio.lsfTB.security.IntegrityChecker.initialize(context)
+            Log.d(TAG, "✅ 完整性校验器初始化成功")
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ 完整性校验器初始化失败", e)
+        }
+        
         val dataBase = DataBase(context)
         
         // 检查 MetaData 表是否存在
@@ -142,13 +150,13 @@ object OOBE {
                 val jsonMediaType = "application/json; charset=utf-8".toMediaType()
                 val registerBody = okhttp3.RequestBody.create(jsonMediaType, registerJson)
                 
-                val registerRequest = NetworkClient.buildPostRequest(
+                val registerRequest = NetworkClient.buildPostRequestWithChallenge(
                     context = context,
                     url = "$serverUrl/register",
                     path = "/lsfStudio/api/register",
                     body = registerBody,
                     bodyContent = registerJson,  // 传递原始 JSON 字符串用于签名
-                    autoSign = false  // 注册接口不签名
+                    useChallengeResponse = false  // 注册接口不使用挑战-响应
                 )
                 
                 val registerResponse = withContext(Dispatchers.IO) {
@@ -168,16 +176,15 @@ object OOBE {
                 
                 registerResponse.close()
                 
-                // 第二步：测试服务器连通性（自动签名）
+                // 第二步：测试服务器连通性（自动签名 + 挑战-响应）
                 Log.d(TAG, "📡 发送测试请求...")
                 
-                val testRequest = NetworkClient.buildGetRequest(
-                    context = context,
-                    url = "$serverUrl/test",
-                    path = "/lsfStudio/api/test"
-                )
-                
                 val testResponse = withContext(Dispatchers.IO) {
+                    val testRequest = NetworkClient.buildGetRequestWithChallenge(
+                        context = context,
+                        url = "$serverUrl/test",
+                        path = "/lsfStudio/api/test"
+                    )
                     NetworkClient.execute(testRequest)
                 }
                 
@@ -240,15 +247,14 @@ object OOBE {
                     reportJson
                 )
                 
-                val reportRequest = NetworkClient.buildPostRequest(
-                    context = context,
-                    url = "$serverUrl/report",
-                    path = "/lsfStudio/api/report",
-                    body = reportBody,
-                    bodyContent = reportJson  // 传递原始 JSON 字符串用于签名
-                )
-                
                 val reportResponse = withContext(Dispatchers.IO) {
+                    val reportRequest = NetworkClient.buildPostRequestWithChallenge(
+                        context = context,
+                        url = "$serverUrl/report",
+                        path = "/lsfStudio/api/report",
+                        body = reportBody,
+                        bodyContent = reportJson  // 传递原始 JSON 字符串用于签名
+                    )
                     NetworkClient.execute(reportRequest)
                 }
                 

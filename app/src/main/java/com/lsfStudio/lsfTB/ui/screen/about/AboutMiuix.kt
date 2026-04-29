@@ -512,18 +512,18 @@ private fun verifyIdentifierWithServer(context: Context, userInput: String) {
             // 获取服务器 URL（使用 BuildConfig）
             val serverUrl = com.lsfStudio.lsfTB.BuildConfig.SERVER_URL
             
-            // 构建请求（NetworkClient 自动签名）
-            val request = com.lsfStudio.lsfTB.ui.util.NetworkClient.buildPostRequest(
-                context = context,
-                url = "$serverUrl/verify",
-                path = "/lsfStudio/api/verify",
-                body = requestBody,
-                bodyContent = verifyJson  // 传递原始 JSON 字符串用于签名
-            )
-            
-            // 执行请求
-            val response = com.lsfStudio.lsfTB.ui.util.NetworkClient.execute(request)
-            val responseBody = response.body?.string()
+            // 构建请求并执行（NetworkClient 自动签名 + 挑战-响应）
+            val (response, responseBody) = withContext(Dispatchers.IO) {
+                val request = com.lsfStudio.lsfTB.ui.util.NetworkClient.buildPostRequestWithChallenge(
+                    context = context,
+                    url = "$serverUrl/verify",
+                    path = "/lsfStudio/api/verify",
+                    body = requestBody,
+                    bodyContent = verifyJson  // 传递原始 JSON 字符串用于签名
+                )
+                val resp = com.lsfStudio.lsfTB.ui.util.NetworkClient.execute(request)
+                Pair(resp, resp.body?.string())
+            }
             
             if (response.isSuccessful && responseBody != null) {
                 val jsonResponse = org.json.JSONObject(responseBody)
