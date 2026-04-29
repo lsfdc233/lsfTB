@@ -92,7 +92,7 @@ fun BottomBarMiuix(
                     onClick = {
                         mainState.animateToPage(index)
                     },
-                    modifier = Modifier.defaultMinSize(minWidth = 76.dp)
+                    modifier = Modifier.defaultMinSize(minWidth = 64.dp)
                 ) {
                     Icon(
                         imageVector = item.icon,

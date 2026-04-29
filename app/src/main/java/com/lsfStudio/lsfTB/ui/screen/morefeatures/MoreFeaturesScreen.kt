@@ -6,11 +6,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.lsfStudio.lsfTB.ui.theme.LocalEnableBlur
+import com.lsfStudio.lsfTB.ui.util.BlurredBar
+import com.lsfStudio.lsfTB.ui.util.rememberBlurBackdrop
+import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TopAppBar
+import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 
 /**
@@ -21,35 +28,35 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
  */
 @Composable
 fun MoreFeaturesScreen() {
+    val scrollBehavior = MiuixScrollBehavior()
+    val enableBlur = LocalEnableBlur.current
+    val backdrop = rememberBlurBackdrop(enableBlur)
+    val blurActive = backdrop != null
+    val barColor = if (blurActive) Color.Transparent else colorScheme.surface
+    
     Scaffold(
-        modifier = Modifier.fillMaxSize(),
         topBar = {
-            // 顶部标题栏 - 类似 HomeScreen 的动态标题
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(top = 20.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "更多功能",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = colorScheme.onSurface
+            BlurredBar(backdrop) {
+                TopAppBar(
+                    color = barColor,
+                    title = "更多功能",
+                    scrollBehavior = scrollBehavior
                 )
             }
-        }
-    ) { paddingValues ->
-        // 页面内容区域（目前为空白）
+        },
+        popupHost = { }
+    ) { innerPadding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
+                .then(if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier)
+                .padding(innerPadding),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = "更多功能开发中...",
                 fontSize = 16.sp,
+                fontWeight = FontWeight.Normal,
                 color = colorScheme.onSurfaceVariantSummary
             )
         }
