@@ -2087,6 +2087,36 @@ fun VaultFileGridItem(
     onDragEnd: () -> Unit = {},
     onDelete: () -> Unit
 ) {
+    val context = LocalContext.current
+    var decryptedTempFilePath by remember(file.id) { mutableStateOf<String?>(null) }
+    
+    // 解密文件用于预览
+    LaunchedEffect(file.filePath, file.originalName) {
+        // 清理之前的临时文件
+        decryptedTempFilePath?.let { oldPath ->
+            File(oldPath).delete()
+        }
+        
+        if (file.fileType == FileType.IMAGE) {
+            // 解密图片到临时位置
+            val tempFile = com.lsfStudio.lsfTB.ui.util.VaultEncryptionManager.decryptToTempFile(
+                context = context,
+                encryptedFilePath = file.filePath,
+                originalFileName = file.originalName
+            )
+            decryptedTempFilePath = tempFile?.absolutePath
+        }
+    }
+    
+    // 清理临时文件（当组件销毁时）
+    DisposableEffect(Unit) {
+        onDispose {
+            decryptedTempFilePath?.let { path ->
+                File(path).delete()
+            }
+        }
+    }
+    
     Box(
         modifier = Modifier
             .aspectRatio(1f)
@@ -2122,9 +2152,10 @@ fun VaultFileGridItem(
     ) {
         // 缩略图/封面
         if (file.fileType == FileType.IMAGE) {
-            // 图片：直接显示
+            // 图片：显示解密后的临时文件
+            val imagePath = decryptedTempFilePath ?: file.filePath
             AsyncImage(
-                model = File(file.filePath),
+                model = File(imagePath),
                 contentDescription = file.originalName,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop

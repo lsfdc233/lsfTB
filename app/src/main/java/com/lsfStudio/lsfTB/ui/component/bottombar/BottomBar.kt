@@ -73,6 +73,37 @@ class MainPagerState(
         }
     }
 
+    /**
+     * 同步页面偏移量（用于底栏拖动时页面跟随）
+     * @param offset 偏移量，范围 0.0 到 (pageCount - 1)
+     */
+    suspend fun syncPageOffset(offset: Float) {
+        val clampedOffset = offset.coerceIn(0f, (pagerState.pageCount - 1).toFloat())
+        val targetPage = clampedOffset.toInt()
+        val pageOffset = clampedOffset - targetPage
+        
+        // 计算相对于当前页面的偏移
+        val currentPage = pagerState.currentPage
+        val currentPageOffset = pagerState.currentPageOffsetFraction
+        
+        // 如果目标页面与当前页面相同，直接更新偏移
+        if (targetPage == currentPage) {
+            // pageOffset 需要在 -0.5 到 0.5 范围内
+            val normalizedOffset = (pageOffset - 0.5f).coerceIn(-0.5f, 0.5f)
+            pagerState.scrollToPage(currentPage, normalizedOffset)
+        } else {
+            // 如果目标页面不同，直接跳转到目标页面（不带动画）
+            // 注意：Pager 不支持跨页面的部分偏移显示
+            pagerState.scrollToPage(targetPage, 0f)
+        }
+        
+        // 更新选中页面
+        val roundedPage = (clampedOffset + 0.5f).toInt()
+        if (selectedPage != roundedPage) {
+            selectedPage = roundedPage
+        }
+    }
+
     fun syncPage() {
         if (!isNavigating && selectedPage != pagerState.currentPage) {
             selectedPage = pagerState.currentPage

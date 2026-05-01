@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
@@ -64,8 +65,10 @@ import kotlinx.coroutines.launch
 import com.lsfStudio.lsfTB.ui.animation.DampedDragAnimation
 import com.lsfStudio.lsfTB.ui.animation.InteractiveHighlight
 import com.lsfStudio.lsfTB.ui.theme.isInDarkTheme
+import com.lsfStudio.lsfTB.ui.util.HapticFeedbackUtil
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import kotlin.math.abs
+import kotlin.math.floor
 import kotlin.math.sign
 
 val LocalFloatingBottomBarTabScale = staticCompositionLocalOf { { 1f } }
@@ -107,8 +110,10 @@ fun FloatingBottomBar(
     backdrop: Backdrop,
     tabsCount: Int,
     isBlurEnabled: Boolean = true,
+    onPageOffsetChanged: ((Float) -> Unit)? = null,  // 新增：页面偏移量变化回调
     content: @Composable RowScope.() -> Unit
 ) {
+    val context = LocalContext.current
     val isInLightTheme = !isInDarkTheme()
     val accentColor = MiuixTheme.colorScheme.primary
     val containerColor = if (isBlurEnabled) {
@@ -138,6 +143,7 @@ fun FloatingBottomBar(
     }
 
     var currentIndex by remember(selectedIndex) { mutableIntStateOf(selectedIndex()) }
+    var lastDraggedIndex by remember { mutableIntStateOf(selectedIndex()) }
 
     class DampedDragAnimationHolder {
         var instance: DampedDragAnimation? = null
@@ -169,7 +175,10 @@ fun FloatingBottomBar(
                 }
                 globalTouchX in 0f..totalWidthPx
             },
-            onDragStarted = {},
+            onDragStarted = {
+                // 拿起滑块时触发震动
+                HapticFeedbackUtil.lightClick(context)
+            },
             onDragStopped = {
                 val targetIndex = targetValue.fastRoundToInt().fastCoerceIn(0, tabsCount - 1)
                 currentIndex = targetIndex
@@ -180,10 +189,20 @@ fun FloatingBottomBar(
             },
             onDrag = { _, dragAmount ->
                 if (tabWidthPx > 0) {
-                    updateValue(
-                        (targetValue + dragAmount.x / tabWidthPx * if (isLtr) 1f else -1f)
-                            .fastCoerceIn(0f, (tabsCount - 1).toFloat())
-                    )
+                    val newValue = (targetValue + dragAmount.x / tabWidthPx * if (isLtr) 1f else -1f)
+                        .fastCoerceIn(0f, (tabsCount - 1).toFloat())
+                    updateValue(newValue)
+                    
+                    // 通知页面偏移量变化（用于页面跟随）
+                    onPageOffsetChanged?.invoke(newValue)
+                    
+                    // 检测是否经过了一个选项边界
+                    val currentRoundedIndex = floor(newValue + 0.5f).toInt().fastCoerceIn(0, tabsCount - 1)
+                    if (currentRoundedIndex != lastDraggedIndex) {
+                        HapticFeedbackUtil.lightClick(context)
+                        lastDraggedIndex = currentRoundedIndex
+                    }
+                    
                     animationScope.launch {
                         offsetAnimation.snapTo(offsetAnimation.value + dragAmount.x)
                     }

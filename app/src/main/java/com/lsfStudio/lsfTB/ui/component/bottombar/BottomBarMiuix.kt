@@ -10,10 +10,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -24,6 +29,7 @@ import com.lsfStudio.lsfTB.ui.component.FloatingBottomBarItem
 import com.lsfStudio.lsfTB.ui.theme.LocalEnableFloatingBottomBar
 import com.lsfStudio.lsfTB.ui.theme.LocalEnableFloatingBottomBarBlur
 import com.lsfStudio.lsfTB.ui.util.BlurredBar
+import com.lsfStudio.lsfTB.ui.util.HapticFeedbackUtil
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.NavigationBar
 import top.yukonga.miuix.kmp.basic.NavigationBarItem
@@ -44,10 +50,24 @@ fun BottomBarMiuix(
     backdrop: Backdrop,
     modifier: Modifier,
 ) {
+    val context = LocalContext.current
     val mainState = LocalMainPagerState.current
     val enableFloatingBottomBar = LocalEnableFloatingBottomBar.current
     val enableFloatingBottomBarBlur = LocalEnableFloatingBottomBarBlur.current
     val disableAllAnimations = com.lsfStudio.lsfTB.ui.theme.LocalDisableAllAnimations.current
+
+    // 用于跟踪页面偏移量
+    var pageOffset by remember { mutableFloatStateOf(0f) }
+    
+    // 监听页面偏移量变化，同步到Pager
+    // 注意：由于 Compose Pager 的限制，无法实现实时页面跟随
+    // 只能在拖动结束时切换页面
+    LaunchedEffect(pageOffset) {
+        if (!disableAllAnimations && pageOffset > 0f) {
+            // 暂时禁用实时跟随，避免崩溃
+            // mainState.syncPageOffset(pageOffset)
+        }
+    }
 
     val items = BottomBarDestination.entries.map { destination ->
         NavigationItem(
@@ -68,6 +88,10 @@ fun BottomBarMiuix(
                             label = item.label,
                             selected = mainState.selectedPage == index,
                             onClick = {
+                                // 仅在切换到不同页面时触发震动
+                                if (mainState.selectedPage != index) {
+                                    HapticFeedbackUtil.lightClick(context)
+                                }
                                 mainState.animateToPage(index, disableAllAnimations)
                             }
                         )
@@ -85,14 +109,28 @@ fun BottomBarMiuix(
                 )
                 .padding(bottom = 12.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()),
             selectedIndex = { mainState.selectedPage },
-            onSelected = { mainState.animateToPage(it, disableAllAnimations) },
+            onSelected = { 
+                // 仅在切换到不同页面时触发震动
+                if (mainState.selectedPage != it) {
+                    HapticFeedbackUtil.lightClick(context)
+                }
+                mainState.animateToPage(it, disableAllAnimations) 
+            },
             backdrop = backdrop,
             tabsCount = items.size,
             isBlurEnabled = enableFloatingBottomBarBlur,
+            onPageOffsetChanged = { offset ->
+                // 更新页面偏移量，触发 LaunchedEffect
+                pageOffset = offset
+            },
         ) {
             items.forEachIndexed { index, item ->
                 FloatingBottomBarItem(
                     onClick = {
+                        // 仅在切换到不同页面时触发震动
+                        if (mainState.selectedPage != index) {
+                            HapticFeedbackUtil.lightClick(context)
+                        }
                         mainState.animateToPage(index, disableAllAnimations)
                     },
                     modifier = Modifier.defaultMinSize(minWidth = 64.dp)

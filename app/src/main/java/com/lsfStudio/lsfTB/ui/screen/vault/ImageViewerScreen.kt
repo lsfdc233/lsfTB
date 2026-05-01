@@ -368,8 +368,7 @@ fun ImageViewerScreen(
                     // 返回按钮 - 优化响应速度
                     IconButton(
                         onClick = {
-                            // 立即执行返回，避免延迟
-                            showControls = false
+                            // 直接返回，由 DisposableEffect 恢复系统栏
                             onBack()
                         },
                         modifier = Modifier.size(40.dp)
