@@ -125,3 +125,7 @@ val LocalEnableBlur = staticCompositionLocalOf { false }
 val LocalEnableFloatingBottomBar = staticCompositionLocalOf { false }
 
 val LocalEnableFloatingBottomBarBlur = staticCompositionLocalOf { false }
+
+val LocalDisableAllAnimations = staticCompositionLocalOf { false }  // 去掉所有动画效果
+
+val LocalEnableMonet = staticCompositionLocalOf { false }  // 莫奈取色开关

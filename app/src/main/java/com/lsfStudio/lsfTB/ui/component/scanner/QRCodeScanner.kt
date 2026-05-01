@@ -156,8 +156,21 @@ fun QRCodeScanner(
     
     // 初始化条码扫描器
     LaunchedEffect(Unit) {
-        barcodeScanner = BarcodeScanning.getClient().also {
-            Log.d("QRCodeScanner", "BarcodeScanner 已初始化")
+        try {
+            // 使用默认配置初始化条码扫描器
+            barcodeScanner = BarcodeScanning.getClient().also {
+                Log.d("QRCodeScanner", "✅ BarcodeScanner 已初始化")
+            }
+        } catch (e: Exception) {
+            Log.e("QRCodeScanner", "❌ BarcodeScanner 初始化失败", e)
+            // 显示错误提示
+            android.widget.Toast.makeText(
+                context,
+                "二维码扫描器初始化失败，请确保设备支持 Google Play Services",
+                android.widget.Toast.LENGTH_LONG
+            ).show()
+            // 关闭扫码页面
+            onDismiss()
         }
     }
     

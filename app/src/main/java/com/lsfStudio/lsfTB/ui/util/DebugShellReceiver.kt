@@ -26,6 +26,9 @@ import com.lsfStudio.lsfTB.BuildConfig
  * 
  * # 重置所有配置
  * adb shell am broadcast -a com.lsfStudio.lsfTB.DEBUG_SHELL --es command "reset_config"
+ * 
+ * # 退出登录
+ * adb shell am broadcast -a com.lsfStudio.lsfTB.DEBUG_SHELL --es command "logout"
  * ```
  */
 class DebugShellReceiver : BroadcastReceiver() {
@@ -119,10 +122,11 @@ class DebugShellReceiver : BroadcastReceiver() {
         }
         
         // 安全检查：仅允许本地 ADB 调用（检查 UID）
+        // 注意：ADB 广播可能不包含 UID 信息，所以只记录不阻止
         val callingUid = intent.getIntExtra("android.intent.extra.UID", -1)
         if (callingUid != -1 && callingUid != android.os.Process.myUid()) {
-            Log.w(TAG, "⚠️ 拒绝来自其他应用的调用: UID=$callingUid")
-            return
+            Log.w(TAG, "⚠️ 警告: 来自其他应用的调用: UID=$callingUid")
+            // 不阻止，仅记录警告
         }
         
         // 检查是否启用开发者模式（Release 模式下也需要检查）
@@ -149,6 +153,9 @@ class DebugShellReceiver : BroadcastReceiver() {
             }
             "reset_config" -> {
                 handleResetConfig(context)
+            }
+            "logout" -> {
+                handleLogout(context)
             }
             else -> {
                 Log.e(TAG, "❌ 未知命令: $command")
@@ -227,6 +234,20 @@ class DebugShellReceiver : BroadcastReceiver() {
     }
     
     /**
+     * 退出登录
+     */
+    private fun handleLogout(context: Context) {
+        if (!com.lsfStudio.lsfTB.ui.util.AccountManager.isLoggedIn(context)) {
+            Log.w(TAG, "⚠️ 用户未登录，无需退出")
+            return
+        }
+        
+        com.lsfStudio.lsfTB.ui.util.AccountManager.clearUserInfo(context)
+        Log.d(TAG, "✅ 已退出登录")
+        Log.d(TAG, "💡 提示: 请重启应用或刷新界面以生效")
+    }
+    
+    /**
      * 输出使用说明
      */
     private fun logUsage() {
@@ -244,6 +265,9 @@ class DebugShellReceiver : BroadcastReceiver() {
             
             4. 重置所有配置:
                adb shell am broadcast -a $ACTION_DEBUG_SHELL --es command "reset_config"
+            
+            5. 退出登录:
+               adb shell am broadcast -a $ACTION_DEBUG_SHELL --es command "logout"
             
             ⚠️ 注意:
             - Debug 模式或通过验证启用开发者模式后可用

@@ -11,4 +11,5 @@ data class MainActivityUiState(
     val enableFloatingBottomBar: Boolean,
     val enableFloatingBottomBarBlur: Boolean,
     val enableSmoothCorner: Boolean,
+    val disableAllAnimations: Boolean,  // 去掉所有动画效果
 )

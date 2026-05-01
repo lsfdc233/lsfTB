@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Animation
 import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.ContactPage
 import androidx.compose.material.icons.rounded.Dashboard
@@ -27,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.lsfStudio.lsfTB.ui.component.UserInfoCard
 import com.lsfStudio.lsfTB.ui.theme.LocalEnableBlur
 import com.lsfStudio.lsfTB.ui.util.BlurredBar
 import com.lsfStudio.lsfTB.ui.util.rememberBlurBackdrop
@@ -60,7 +62,7 @@ fun SettingPagerMiuix(
             BlurredBar(backdrop) {
                 TopAppBar(
                     color = barColor,
-                    title = "设置",
+                    title = "我的",
                     scrollBehavior = scrollBehavior
                 )
             }
@@ -80,6 +82,13 @@ fun SettingPagerMiuix(
                 overscrollEffect = null,
             ) {
                 item {
+                    // 用户信息卡片
+                    UserInfoCard(
+                        modifier = Modifier.padding(top = 12.dp),
+                        onCardClick = actions.onOpenLogin, // 点击跳转到登录页面
+                        cardHeight = 120.dp
+                    )
+                    
                     Card(
                         modifier = Modifier
                             .padding(top = 12.dp)
@@ -98,6 +107,21 @@ fun SettingPagerMiuix(
                             },
                             checked = uiState.checkUpdate,
                             onCheckedChange = actions.onSetCheckUpdate
+                        )
+                        
+                        SwitchPreference(
+                            title = "去掉所有动画效果",
+                            summary = "禁用页面切换、弹窗等所有动画，提升性能",
+                            startAction = {
+                                Icon(
+                                    Icons.Rounded.Animation,
+                                    modifier = Modifier.padding(end = 6.dp),
+                                    contentDescription = "去掉所有动画效果",
+                                    tint = colorScheme.onBackground
+                                )
+                            },
+                            checked = uiState.disableAllAnimations,
+                            onCheckedChange = actions.onSetDisableAllAnimations
                         )
                     }
 

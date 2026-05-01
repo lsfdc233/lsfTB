@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -45,6 +47,7 @@ fun BottomBarMiuix(
     val mainState = LocalMainPagerState.current
     val enableFloatingBottomBar = LocalEnableFloatingBottomBar.current
     val enableFloatingBottomBarBlur = LocalEnableFloatingBottomBarBlur.current
+    val disableAllAnimations = com.lsfStudio.lsfTB.ui.theme.LocalDisableAllAnimations.current
 
     val items = BottomBarDestination.entries.map { destination ->
         NavigationItem(
@@ -65,7 +68,7 @@ fun BottomBarMiuix(
                             label = item.label,
                             selected = mainState.selectedPage == index,
                             onClick = {
-                                mainState.animateToPage(index)
+                                mainState.animateToPage(index, disableAllAnimations)
                             }
                         )
                     }
@@ -82,7 +85,7 @@ fun BottomBarMiuix(
                 )
                 .padding(bottom = 12.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()),
             selectedIndex = { mainState.selectedPage },
-            onSelected = { mainState.animateToPage(it) },
+            onSelected = { mainState.animateToPage(it, disableAllAnimations) },
             backdrop = backdrop,
             tabsCount = items.size,
             isBlurEnabled = enableFloatingBottomBarBlur,
@@ -90,7 +93,7 @@ fun BottomBarMiuix(
             items.forEachIndexed { index, item ->
                 FloatingBottomBarItem(
                     onClick = {
-                        mainState.animateToPage(index)
+                        mainState.animateToPage(index, disableAllAnimations)
                     },
                     modifier = Modifier.defaultMinSize(minWidth = 64.dp)
                 ) {
@@ -122,5 +125,5 @@ enum class BottomBarDestination(
     TwoFA("认证", MiuixIcons.Lock),  // Shield → Lock
     MoreFeatures("更多功能", MiuixIcons.MoreCircle),  // 新增：更多功能
     Vault("保险箱", MiuixIcons.Folder),
-    Setting("设置", MiuixIcons.Settings)
+    Setting("我的", Icons.Rounded.Person)  // 设置 → 我的，使用用户头像图标
 }

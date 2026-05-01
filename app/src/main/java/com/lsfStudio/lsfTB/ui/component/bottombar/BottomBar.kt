@@ -34,7 +34,7 @@ class MainPagerState(
 
     private var navJob: Job? = null
 
-    fun animateToPage(targetIndex: Int) {
+    fun animateToPage(targetIndex: Int, disableAnimations: Boolean = false) {
         if (targetIndex == selectedPage) return
 
         navJob?.cancel()
@@ -52,10 +52,16 @@ class MainPagerState(
         navJob = coroutineScope.launch {
             val myJob = coroutineContext.job
             try {
-                pagerState.animateScrollBy(
-                    value = scrollPixels,
-                    animationSpec = tween(easing = EaseInOut, durationMillis = duration)
-                )
+                if (disableAnimations) {
+                    // 禁用动画：直接跳转到目标页面
+                    pagerState.scrollToPage(targetIndex)
+                } else {
+                    // 启用动画：平滑滚动
+                    pagerState.animateScrollBy(
+                        value = scrollPixels,
+                        animationSpec = tween(easing = EaseInOut, durationMillis = duration)
+                    )
+                }
             } finally {
                 if (navJob == myJob) {
                     isNavigating = false

@@ -74,6 +74,10 @@ class SettingsRepositoryImpl(
         get() = prefs.getBoolean("enable_smooth_corner", true)
         set(value) = prefs.edit { putBoolean("enable_smooth_corner", value) }
 
+    override var disableAllAnimations: Boolean
+        get() = prefs.getBoolean("disable_all_animations", false)
+        set(value) = prefs.edit { putBoolean("disable_all_animations", value) }
+
     override var autoJailbreak: Boolean
         get() = false
         set(value) {}

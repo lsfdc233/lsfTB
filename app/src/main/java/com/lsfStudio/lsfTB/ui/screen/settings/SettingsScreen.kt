@@ -33,6 +33,8 @@ fun SettingPager(
         onSetEnableWebDebugging = viewModel::setEnableWebDebugging,
         onOpenAbout = { navigator.push(Route.About) },
         onOpenDebug = { navigator.push(Route.Debug) },  // Debug 设置入口
+        onSetDisableAllAnimations = viewModel::setDisableAllAnimations,  // 去掉所有动画效果
+        onOpenLogin = { navigator.push(Route.Login) },  // 打开登录页面
     )
 
     SettingPagerMiuix(uiState, actions, bottomInnerPadding)

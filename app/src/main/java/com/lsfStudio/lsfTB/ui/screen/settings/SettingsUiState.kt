@@ -18,6 +18,7 @@ data class SettingsUiState(
     val enableWebDebugging: Boolean = false,
     val enableSmoothCorner: Boolean = true,
     val devModeEnabled: Boolean = false,  // 开发者模式状态
+    val disableAllAnimations: Boolean = false,  // 去掉所有动画效果
 )
 
 @Immutable
@@ -27,4 +28,6 @@ data class SettingsScreenActions(
     val onSetEnableWebDebugging: (Boolean) -> Unit,
     val onOpenAbout: () -> Unit,
     val onOpenDebug: () -> Unit = {},  // 打开 Debug 设置页面
+    val onSetDisableAllAnimations: (Boolean) -> Unit = {},  // 设置是否禁用所有动画
+    val onOpenLogin: () -> Unit = {},  // 打开登录页面
 )

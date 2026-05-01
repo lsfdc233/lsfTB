@@ -71,6 +71,8 @@ import com.lsfStudio.lsfTB.ui.screen.about.AboutScreen
 import com.lsfStudio.lsfTB.ui.screen.colorpalette.ColorPaletteScreen
 import com.lsfStudio.lsfTB.ui.screen.debug.DebugSettingsScreen
 import com.lsfStudio.lsfTB.ui.screen.home.HomePager
+import com.lsfStudio.lsfTB.ui.screen.login.LoginScreen
+import com.lsfStudio.lsfTB.ui.screen.register.RegisterScreen
 import com.lsfStudio.lsfTB.ui.screen.settings.SettingPager
 import com.lsfStudio.lsfTB.ui.screen.vault.VaultScreen
 import com.lsfStudio.lsfTB.ui.screen.vault.ImageViewerScreen
@@ -81,6 +83,7 @@ import com.lsfStudio.lsfTB.ui.theme.LocalColorMode
 import com.lsfStudio.lsfTB.ui.theme.LocalEnableBlur
 import com.lsfStudio.lsfTB.ui.theme.LocalEnableFloatingBottomBar
 import com.lsfStudio.lsfTB.ui.theme.LocalEnableFloatingBottomBarBlur
+import com.lsfStudio.lsfTB.ui.theme.LocalDisableAllAnimations
 import com.lsfStudio.lsfTB.ui.util.rememberBlurBackdrop
 import com.lsfStudio.lsfTB.ui.util.rememberContentReady
 import com.lsfStudio.lsfTB.ui.viewmodel.MainActivityViewModel
@@ -221,7 +224,9 @@ class MainActivity : ComponentActivity() {
                 // 浮动底栏开关
                 LocalEnableFloatingBottomBar provides uiState.enableFloatingBottomBar,
                 // 浮动底栏模糊效果开关
-                LocalEnableFloatingBottomBarBlur provides uiState.enableFloatingBottomBarBlur
+                LocalEnableFloatingBottomBarBlur provides uiState.enableFloatingBottomBarBlur,
+                // 去掉所有动画效果开关
+                LocalDisableAllAnimations provides uiState.disableAllAnimations
             ) {
                 // 应用主题，传入应用设置
                 lsfTBTheme(appSettings = appSettings) {
@@ -241,6 +246,17 @@ class MainActivity : ComponentActivity() {
                             entryProvider = entryProvider {
                                 // 主页路由
                                 entry<Route.Main> { MainScreen() }
+                                // 登录页面路由
+                                entry<Route.Login> { 
+                                    LoginScreen(
+                                        onLoginSuccess = {
+                                            // 登录成功后关闭登录页面，返回"我的"页面
+                                            navigator.pop()
+                                        }
+                                    ) 
+                                }
+                                // 注册页面路由
+                                entry<Route.Register> { RegisterScreen() }
                                 // 设置页路由（复用MainScreen）
                                 entry<Route.Settings> { MainScreen() }
                                 // 关于页面路由
@@ -516,16 +532,26 @@ fun MainScreen() {
 
         // 定义底部导航栏Composable - 支持动画隐藏
         val bottomBar = @Composable {
+            val disableAllAnimations = com.lsfStudio.lsfTB.ui.theme.LocalDisableAllAnimations.current
+            
             androidx.compose.animation.AnimatedVisibility(
                 visible = isBottomBarVisible,
-                enter = androidx.compose.animation.slideInVertically(
-                    initialOffsetY = { it },
-                    animationSpec = androidx.compose.animation.core.tween(durationMillis = 300)
-                ),
-                exit = androidx.compose.animation.slideOutVertically(
-                    targetOffsetY = { it },
-                    animationSpec = androidx.compose.animation.core.tween(durationMillis = 300)
-                )
+                enter = if (disableAllAnimations) {
+                    androidx.compose.animation.EnterTransition.None
+                } else {
+                    androidx.compose.animation.slideInVertically(
+                        initialOffsetY = { it },
+                        animationSpec = androidx.compose.animation.core.tween(durationMillis = 300)
+                    )
+                },
+                exit = if (disableAllAnimations) {
+                    androidx.compose.animation.ExitTransition.None
+                } else {
+                    androidx.compose.animation.slideOutVertically(
+                        targetOffsetY = { it },
+                        animationSpec = androidx.compose.animation.core.tween(durationMillis = 300)
+                    )
+                }
             ) {
                 Box(
                     modifier = Modifier.fillMaxWidth()

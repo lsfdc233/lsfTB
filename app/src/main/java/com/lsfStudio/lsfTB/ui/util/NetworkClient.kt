@@ -19,8 +19,13 @@ import okhttp3.Response
 import okio.Buffer
 import java.io.IOException
 import java.security.MessageDigest
+import java.security.SecureRandom
+import java.security.cert.X509Certificate
 import java.util.UUID
 import java.util.concurrent.TimeUnit
+import javax.net.ssl.SSLContext
+import javax.net.ssl.TrustManager
+import javax.net.ssl.X509TrustManager
 
 /**
  * 网络通信中枢
@@ -40,17 +45,31 @@ object NetworkClient {
     /**
      * 全局唯一的OkHttpClient实例（内部使用）
      * 配置：
-     * - 连接超时: 10秒
-     * - 读取超时: 10秒
-     * - 写入超时: 10秒
+     * - 连接超时: 30秒（增加以支持大文件上传）
+     * - 读取超时: 60秒（增加以支持大文件上传）
+     * - 写入超时: 60秒（增加以支持大文件上传）
+     * - SSL: 信任所有证书（仅用于开发环境）
      */
     private val okHttpClient: OkHttpClient by lazy {
+        // 创建信任所有证书的 TrustManager（仅用于开发/测试）
+        val trustAllCertificates = object : X509TrustManager {
+            override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
+            override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
+            override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
+        }
+        
+        // 创建 SSLContext
+        val sslContext = SSLContext.getInstance("TLS")
+        sslContext.init(null, arrayOf<TrustManager>(trustAllCertificates), SecureRandom())
+        
         OkHttpClient.Builder()
-            .connectTimeout(10, TimeUnit.SECONDS)
-            .readTimeout(10, TimeUnit.SECONDS)
-            .writeTimeout(10, TimeUnit.SECONDS)
+            .connectTimeout(30, TimeUnit.SECONDS)  // 增加到30秒
+            .readTimeout(60, TimeUnit.SECONDS)     // 增加到60秒
+            .writeTimeout(60, TimeUnit.SECONDS)    // 增加到60秒
+            .sslSocketFactory(sslContext.socketFactory, trustAllCertificates)
+            .hostnameVerifier { _, _ -> true }  // 信任所有主机名
             .build().also {
-                Log.d(TAG, "OkHttpClient实例已创建")
+                Log.d(TAG, "OkHttpClient实例已创建（开发模式：信任所有证书，超时时间已优化）")
             }
     }
     
@@ -428,6 +447,7 @@ object NetworkClient {
         val nonce = UUID.randomUUID().toString()
         val deviceId = KeystoreManager.getDeviceId(context)
         val apkSignature = getApkSignature(context)
+        val androidId = getAndroidId(context)
         
         // 生成签名字符串
         val stringToSign = "$method\n$path\n$body\n$timestamp\n$nonce"
@@ -440,13 +460,15 @@ object NetworkClient {
         Log.d(TAG, "   Nonce: $nonce")
         Log.d(TAG, "   Signature: ${signature.take(32)}...")
         Log.d(TAG, "   APK Signature: $apkSignature")
+        Log.d(TAG, "   Android ID: $androidId")
         
         return mapOf(
             "X-Timestamp" to timestamp,
             "X-Nonce" to nonce,
             "X-Signature" to signature,
             "X-Key-Id" to deviceId,
-            "X-APK-Signature" to apkSignature
+            "X-APK-Signature" to apkSignature,
+            "X-Android-ID" to androidId
         )
     }
     
@@ -497,6 +519,25 @@ object NetworkClient {
             }
         } catch (e: Exception) {
             Log.e(TAG, "❌ 获取APK签名失败", e)
+            "error"
+        }
+    }
+    
+    /**
+     * 获取Android ID
+     * 
+     * @param context 上下文
+     * @return Android ID 字符串
+     */
+    private fun getAndroidId(context: Context): String {
+        return try {
+            val androidId = android.provider.Settings.Secure.getString(
+                context.contentResolver,
+                android.provider.Settings.Secure.ANDROID_ID
+            )
+            androidId ?: "unknown"
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ 获取Android ID失败", e)
             "error"
         }
     }

@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import com.lsfStudio.lsfTB.ui.component.dialog.ConfirmDialogMiuix
 import com.lsfStudio.lsfTB.ui.navigation3.LocalNavigator
 import com.lsfStudio.lsfTB.ui.theme.LocalEnableBlur
+import com.lsfStudio.lsfTB.ui.util.AccountManager
 import com.lsfStudio.lsfTB.ui.util.BlurredBar
 import com.lsfStudio.lsfTB.ui.util.DebugShellReceiver
 import com.lsfStudio.lsfTB.ui.util.HapticFeedbackUtil
@@ -65,6 +66,7 @@ fun DebugSettingsScreen() {
     
     // 对话框状态
     var showDisableConfirmDialog by remember { mutableStateOf(false) }
+    var showLogoutConfirmDialog by remember { mutableStateOf(false) }
     
     Scaffold(
         topBar = {
@@ -118,6 +120,24 @@ fun DebugSettingsScreen() {
                         )
                     }
                     
+                    // 退出登录按钮（仅在已登录时显示）
+                    if (AccountManager.isLoggedIn(context)) {
+                        Card(
+                            modifier = Modifier
+                                .padding(top = 12.dp)
+                                .fillMaxWidth(),
+                        ) {
+                            ArrowPreference(
+                                title = "退出登录",
+                                summary = "清除本地用户信息和头像数据",
+                                onClick = {
+                                    HapticFeedbackUtil.lightClick(context)
+                                    showLogoutConfirmDialog = true
+                                }
+                            )
+                        }
+                    }
+                    
                     Spacer(Modifier.height(12.dp))
                 }
             }
@@ -146,6 +166,27 @@ fun DebugSettingsScreen() {
         },
         showDialog = remember { mutableStateOf(false) }.also { dialogState ->
             dialogState.value = showDisableConfirmDialog
+        }
+    )
+    
+    // 退出登录确认对话框
+    ConfirmDialogMiuix(
+        title = "退出登录",
+        content = "确定要退出登录吗？\n\n此操作将清除本地用户信息和头像数据，但不会影响服务器上的账户。",
+        confirmText = "退出",
+        dismissText = "取消",
+        onConfirm = {
+            HapticFeedbackUtil.lightClick(context)
+            AccountManager.clearUserInfo(context)
+            Toast.makeText(context, "✅ 已退出登录", Toast.LENGTH_SHORT).show()
+            Log.d("DebugSettings", "✅ 已退出登录")
+            showLogoutConfirmDialog = false
+        },
+        onDismiss = {
+            showLogoutConfirmDialog = false
+        },
+        showDialog = remember { mutableStateOf(false) }.also { dialogState ->
+            dialogState.value = showLogoutConfirmDialog
         }
     )
 }

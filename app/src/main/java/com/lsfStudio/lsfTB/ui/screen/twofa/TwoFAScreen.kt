@@ -167,6 +167,11 @@ fun TwoFAScreen(
     
     // 监听扫码结果
     LaunchedEffect(Unit) {
+        if (navigator == null) {
+            Log.w("TwoFAScreen", "⚠️ Navigator 为 null，无法监听扫码结果")
+            return@LaunchedEffect
+        }
+        
         try {
             navigator.observeResult<String>("qr_code_scan_result").collect { scannedData ->
                 Log.d("TwoFAScreen", "收到扫描结果: $scannedData")
@@ -554,10 +559,15 @@ fun TwoFAScreen(
                                 HapticFeedbackUtil.lightClick(context)
                                 showAddDialog = false
                                 // 跳转到扫码页面
-                                navigator.push(Route.QRCodeScanner(
-                                    title = "扫描 2FA 二维码",
-                                    hint = "将 2FA 二维码放入框内"
-                                ))
+                                if (navigator != null) {
+                                    navigator.push(Route.QRCodeScanner(
+                                        title = "扫描 2FA 二维码",
+                                        hint = "将 2FA 二维码放入框内"
+                                    ))
+                                } else {
+                                    Log.e("TwoFAScreen", "❌ Navigator 为 null，无法跳转扫码页面")
+                                    android.widget.Toast.makeText(context, "导航器未初始化", android.widget.Toast.LENGTH_SHORT).show()
+                                }
                             },
                             modifier = Modifier
                                 .weight(1f)

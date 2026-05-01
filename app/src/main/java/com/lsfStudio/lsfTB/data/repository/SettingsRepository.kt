@@ -16,6 +16,7 @@ interface SettingsRepository {
     var pageScale: Float
     var enableWebDebugging: Boolean
     var enableSmoothCorner: Boolean
+    var disableAllAnimations: Boolean  // 去掉所有动画效果
     var autoJailbreak: Boolean
 
     suspend fun getSuCompatStatus(): String

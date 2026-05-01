@@ -40,6 +40,7 @@ class SettingsViewModel(
             val pageScale = repo.pageScale
             val enableWebDebugging = repo.enableWebDebugging
             val enableSmoothCorner = repo.enableSmoothCorner
+            val disableAllAnimations = repo.disableAllAnimations
             
             // 检查开发者模式状态
             val devModeEnabled = com.lsfStudio.lsfTB.ui.util.DebugShellReceiver.isDevModeEnabled(context)
@@ -59,6 +60,7 @@ class SettingsViewModel(
                     pageScale = pageScale,
                     enableWebDebugging = enableWebDebugging,
                     enableSmoothCorner = enableSmoothCorner,
+                    disableAllAnimations = disableAllAnimations,
                     devModeEnabled = devModeEnabled,
                 )
             }
@@ -141,5 +143,10 @@ class SettingsViewModel(
     fun setEnableSmoothCorner(enabled: Boolean) {
         repo.enableSmoothCorner = enabled
         _uiState.update { it.copy(enableSmoothCorner = enabled) }
+    }
+
+    fun setDisableAllAnimations(enabled: Boolean) {
+        repo.disableAllAnimations = enabled
+        _uiState.update { it.copy(disableAllAnimations = enabled) }
     }
 }

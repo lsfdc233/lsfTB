@@ -82,6 +82,8 @@ class MainActivityViewModel(
             enableFloatingBottomBarBlur = settingRepo.enableFloatingBottomBarBlur,
             // 是否启用平滑圆角
             enableSmoothCorner = settingRepo.enableSmoothCorner,
+            // 是否去掉所有动画效果
+            disableAllAnimations = settingRepo.disableAllAnimations,
         )
     }
 
@@ -102,6 +104,7 @@ class MainActivityViewModel(
             "enable_floating_bottom_bar",      // 浮动底栏
             "enable_floating_bottom_bar_blur", // 底栏模糊
             "enable_smooth_corner",            // 平滑圆角
+            "disable_all_animations",          // 去掉所有动画效果
         )
     }
 }
