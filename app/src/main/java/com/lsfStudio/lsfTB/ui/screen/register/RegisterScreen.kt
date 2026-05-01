@@ -377,7 +377,7 @@ fun RegisterScreen(
                                         path = "/lsfStudio/api/account/send-verify-code",
                                         body = requestBody.toRequestBody("application/json".toMediaType()),
                                         bodyContent = requestBody,
-                                        useChallengeResponse = false
+                                        useChallengeResponse = true  // ✅ 所有请求统一使用 Challenge-Response
                                     )
                                     
                                     val response = com.lsfStudio.lsfTB.ui.util.NetworkClient.execute(request)
@@ -683,7 +683,7 @@ fun RegisterScreen(
                                     path = "/lsfStudio/api/account/register",
                                     body = requestBody.toRequestBody("application/json".toMediaType()),
                                     bodyContent = requestBody,
-                                    useChallengeResponse = false  // 注册接口不需要签名验证
+                                    useChallengeResponse = true  // ✅ 所有请求统一使用 Challenge-Response
                                 )
                                 
                                 val response = com.lsfStudio.lsfTB.ui.util.NetworkClient.execute(request)

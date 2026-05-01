@@ -28,7 +28,14 @@ class lsfTBApplication : Application(), ViewModelStoreOwner {
      */
     override fun onCreate() {
         super.onCreate()
-        // 在这里可以添加全局初始化逻辑
+        
+        // ✅ 初始化Vault加密管理器
+        try {
+            com.lsfStudio.lsfTB.ui.util.VaultEncryptionManager.initialize(this)
+            android.util.Log.d("lsfTBApplication", "✅ Vault加密管理器初始化成功")
+        } catch (e: Exception) {
+            android.util.Log.e("lsfTBApplication", "❌ Vault加密管理器初始化失败", e)
+        }
     }
 
     /**

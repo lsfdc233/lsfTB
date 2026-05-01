@@ -58,9 +58,13 @@ class HomeViewModel(
             val enabled = repo.checkUpdate
             
             if (!enabled) {
-                android.util.Log.d("HomeViewModel", "⚙️ 用户禁用了自动检查更新，直接启用所有控件")
+                android.util.Log.d("HomeViewModel", "⚙️ 用户禁用了自动检查更新")
                 // Settings 开关关闭时，直接设置 isChecked = true，允许所有控件操作
                 _uiState.value = _uiState.value.copy(isChecked = true)
+                
+                // ✅ 即使禁用更新检查，也要执行 OOBE 设备注册和初始化
+                android.util.Log.d("HomeViewModel", "🌐 执行 OOBE 设备注册...")
+                com.lsfStudio.lsfTB.ui.util.OOBE.testServerConnection(context)
                 return@launch
             }
             

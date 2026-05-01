@@ -1644,14 +1644,27 @@ private suspend fun handleSelectedFile(
         // 目标文件路径（使用物理文件名）
         val destFile = File(vaultDir, physicalFileName)
         
-        // 复制文件到私有目录
+        // ✅ 第一步：复制文件到临时位置
+        val tempFile = File(context.cacheDir, "temp_${System.currentTimeMillis()}")
         context.contentResolver.openInputStream(uri)?.use { input ->
-            destFile.outputStream().use { output ->
+            tempFile.outputStream().use { output ->
                 input.copyTo(output)
             }
         }
         
-        // 验证文件是否成功复制
+        // ✅ 第二步：加密文件
+        android.util.Log.d("VaultScreen", "🔐 开始加密文件...")
+        val encryptSuccess = com.lsfStudio.lsfTB.ui.util.VaultEncryptionManager.encryptFile(tempFile, destFile)
+        
+        // 删除临时文件
+        tempFile.delete()
+        
+        if (!encryptSuccess) {
+            android.util.Log.e("VaultScreen", "❌ 文件加密失败")
+            return
+        }
+        
+        // 验证文件是否成功加密
         if (destFile.exists() && destFile.length() > 0) {
             // 删除原文件（需要 MANAGE_EXTERNAL_STORAGE 权限）
             try {
@@ -1681,7 +1694,7 @@ private suspend fun handleSelectedFile(
             val vaultFile = VaultFile(
                 id = System.currentTimeMillis(),
                 originalName = originalName,  // 用户看到的完整文件名
-                encryptedName = physicalFileName,  // 物理文件名
+                encryptedName = physicalFileName,  // 物理文件名（.tb格式）
                 filePath = destFile.absolutePath,
                 fileType = fileType,
                 tags = emptyList(),
@@ -1772,26 +1785,44 @@ private suspend fun exportSelectedFiles(
                 file.originalName  // 兼容旧逻辑
             }
             
-            // 在目标目录创建文件
+            // ✅ 第一步：解密文件到临时位置
+            val tempFile = com.lsfStudio.lsfTB.ui.util.VaultEncryptionManager.decryptToTempFile(
+                context = context,
+                encryptedFilePath = file.filePath,
+                originalFileName = fullFileName
+            )
+            
+            if (tempFile == null) {
+                android.util.Log.e("VaultScreen", "❌ 解密失败: ${file.originalName}")
+                continue
+            }
+            
+            // ✅ 第二步：将解密后的文件复制到目标目录
             val targetDocUri = DocumentFile.fromTreeUri(context, targetDirUri)
             val mimeType = if (file.fileType == FileType.IMAGE) "image/*" else "video/*"
             val newFile = targetDocUri?.createFile(mimeType, fullFileName)
             
             if (newFile != null) {
-                // 复制文件内容（从加密文件读取）
-                val sourceFile = File(file.filePath)
-                if (sourceFile.exists()) {
-                    sourceFile.inputStream().use { input ->
-                        context.contentResolver.openOutputStream(newFile.uri)?.use { output ->
-                            input.copyTo(output)
-                        }
+                // 复制解密后的文件内容
+                tempFile.inputStream().use { input ->
+                    context.contentResolver.openOutputStream(newFile.uri)?.use { output ->
+                        input.copyTo(output)
                     }
-                    
-                    // 删除保险箱中的文件
-                    sourceFile.delete()
                 }
+                
+                // ✅ 第三步：删除保险箱中的加密文件
+                val encryptedFile = File(file.filePath)
+                if (encryptedFile.exists()) {
+                    encryptedFile.delete()
+                }
+                
+                // ✅ 第四步：删除临时文件
+                tempFile.delete()
+                
+                android.util.Log.d("VaultScreen", "✅ 文件已导出: $fullFileName")
             }
         } catch (e: Exception) {
+            android.util.Log.e("VaultScreen", "❌ 导出文件失败: ${e.message}")
             e.printStackTrace()
         }
     }

@@ -48,29 +48,45 @@ object NetworkClient {
      * - 连接超时: 30秒（增加以支持大文件上传）
      * - 读取超时: 60秒（增加以支持大文件上传）
      * - 写入超时: 60秒（增加以支持大文件上传）
-     * - SSL: 信任所有证书（仅用于开发环境）
+     * - SSL: Debug模式信任所有证书，Release模式使用系统默认验证
      */
     private val okHttpClient: OkHttpClient by lazy {
-        // 创建信任所有证书的 TrustManager（仅用于开发/测试）
+        val builder = OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
+        
+        // 根据构建类型配置SSL
+        if (BuildConfig.DEBUG) {
+            // Debug模式：信任所有证书（方便开发测试）
+            Log.w(TAG, "⚠️ Debug模式：信任所有SSL证书（仅用于开发）")
+            configureInsecureSsl(builder)
+        } else {
+            // Release模式：使用系统默认SSL验证（安全）
+            Log.d(TAG, "✅ Release模式：启用标准SSL证书验证")
+        }
+        
+        builder.build().also {
+            Log.d(TAG, "OkHttpClient实例已创建（超时时间已优化）")
+        }
+    }
+    
+    /**
+     * 配置不安全的SSL（仅用于Debug模式）
+     */
+    private fun configureInsecureSsl(builder: OkHttpClient.Builder) {
         val trustAllCertificates = object : X509TrustManager {
             override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
             override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
             override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
         }
         
-        // 创建 SSLContext
         val sslContext = SSLContext.getInstance("TLS")
         sslContext.init(null, arrayOf<TrustManager>(trustAllCertificates), SecureRandom())
         
-        OkHttpClient.Builder()
-            .connectTimeout(30, TimeUnit.SECONDS)  // 增加到30秒
-            .readTimeout(60, TimeUnit.SECONDS)     // 增加到60秒
-            .writeTimeout(60, TimeUnit.SECONDS)    // 增加到60秒
+        builder
             .sslSocketFactory(sslContext.socketFactory, trustAllCertificates)
-            .hostnameVerifier { _, _ -> true }  // 信任所有主机名
-            .build().also {
-                Log.d(TAG, "OkHttpClient实例已创建（开发模式：信任所有证书，超时时间已优化）")
-            }
+            .hostnameVerifier { _, _ -> true }
     }
     
     /**

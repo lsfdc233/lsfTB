@@ -98,6 +98,26 @@ fun VideoPlayerScreen(
     var currentFileName by remember { mutableStateOf(fileName) }
     var actualCurrentIndex by remember { mutableIntStateOf(currentIndex) }
     
+    // ✅ 解密后的临时文件路径（用于预览）
+    var decryptedTempFilePath by remember { mutableStateOf<String?>(null) }
+    
+    // ✅ 加载时解密文件
+    LaunchedEffect(currentFilePath, currentFileName) {
+        // 清理之前的临时文件
+        decryptedTempFilePath?.let { oldPath ->
+            File(oldPath).delete()
+        }
+        
+        // 解密当前文件到临时位置
+        val tempFile = com.lsfStudio.lsfTB.ui.util.VaultEncryptionManager.decryptToTempFile(
+            context = context,
+            encryptedFilePath = currentFilePath,
+            originalFileName = currentFileName
+        )
+        
+        decryptedTempFilePath = tempFile?.absolutePath
+    }
+    
     // 获取当前是否为深色模式
     val isDarkTheme = isInDarkTheme()
     val backgroundColor = if (isDarkTheme) Color.Black else Color.White
@@ -175,7 +195,9 @@ fun VideoPlayerScreen(
     fun extractFrameAtPosition(positionMs: Long): Bitmap? {
         return try {
             val retriever = MediaMetadataRetriever()
-            retriever.setDataSource(currentFilePath)
+            // ✅ 使用解密后的临时文件
+            val videoPath = decryptedTempFilePath ?: currentFilePath
+            retriever.setDataSource(videoPath)
             // 使用接近关键帧的时间获取帧
             val frame = retriever.getFrameAtTime(
                 positionMs * 1000, // 转换为微秒
@@ -239,7 +261,9 @@ fun VideoPlayerScreen(
         AndroidView(
             factory = { ctx ->
                 VideoView(ctx).apply {
-                    setVideoPath(currentFilePath)
+                    // ✅ 使用解密后的临时文件
+                    val videoPath = decryptedTempFilePath ?: currentFilePath
+                    setVideoPath(videoPath)
                     setOnPreparedListener { mp ->
                         mediaPlayer = mp
                         mp.setVolume(if (isMuted) 0f else 1f, if (isMuted) 0f else 1f)

@@ -276,8 +276,8 @@ fun LoginScreen(
                                     url = url,
                                     path = "/lsfStudio/api/account/login",
                                     body = requestBody.toRequestBody("application/json".toMediaType()),
-                                    bodyContent = requestBody,
-                                    useChallengeResponse = false  // 登录接口不需要签名验证
+                                    bodyContent = requestBody
+                                    // ✅ 使用默认值 true，启用挑战-响应验证
                                 )
                                 
                                 val response = com.lsfStudio.lsfTB.ui.util.NetworkClient.execute(request)

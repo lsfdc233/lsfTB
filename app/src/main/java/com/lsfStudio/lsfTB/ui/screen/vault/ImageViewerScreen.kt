@@ -92,6 +92,26 @@ fun ImageViewerScreen(
     var currentAddedTime by remember { mutableStateOf(addedTime) }
     var swipeOffsetX by remember { mutableFloatStateOf(0f) } // 用于左右滑动的偏移量
     
+    // ✅ 解密后的临时文件路径（用于预览）
+    var decryptedTempFilePath by remember { mutableStateOf<String?>(null) }
+    
+    // ✅ 加载时解密文件
+    LaunchedEffect(currentFilePath, currentFileName) {
+        // 清理之前的临时文件
+        decryptedTempFilePath?.let { oldPath ->
+            File(oldPath).delete()
+        }
+        
+        // 解密当前文件到临时位置
+        val tempFile = com.lsfStudio.lsfTB.ui.util.VaultEncryptionManager.decryptToTempFile(
+            context = context,
+            encryptedFilePath = currentFilePath,
+            originalFileName = currentFileName
+        )
+        
+        decryptedTempFilePath = tempFile?.absolutePath
+    }
+    
     // 屏幕宽度和速度追踪
     var screenWidth by remember { mutableFloatStateOf(0f) }
     var lastSwipeTime by remember { mutableLongStateOf(0L) }
@@ -227,6 +247,7 @@ fun ImageViewerScreen(
                                         currentFileName = prevFile.originalName
                                         currentAddedTime = prevFile.addedTime
                                         actualCurrentIndex = newIndex
+                                        // ✅ 新文件会在 LaunchedEffect 中自动解密
                                     }
                                     // 根据速度决定动画时长
                                     val duration = if (kotlin.math.abs(swipeVelocity) > 0.3f) 150 else 300
@@ -239,6 +260,7 @@ fun ImageViewerScreen(
                                         currentFileName = nextFile.originalName
                                         currentAddedTime = nextFile.addedTime
                                         actualCurrentIndex = newIndex
+                                        // ✅ 新文件会在 LaunchedEffect 中自动解密
                                     }
                                     // 根据速度决定动画时长
                                     val duration = if (kotlin.math.abs(swipeVelocity) > 0.3f) 150 else 300
@@ -265,15 +287,17 @@ fun ImageViewerScreen(
             val currentFileType = allFiles?.getOrNull(actualCurrentIndex)?.fileType
             
             if (currentFileType == FileType.VIDEO) {
-                // 视频：使用VideoPlayer
+                // 视频：使用VideoPlayer（需要解密）
+                val decryptedVideoPath = decryptedTempFilePath ?: currentFilePath
                 VideoPlayerFromPath(
-                    videoPath = currentFilePath,
+                    videoPath = decryptedVideoPath,
                     autoPlay = true
                 )
             } else {
-                // 图片：使用AsyncImage
+                // 图片：使用AsyncImage（需要解密）
+                val decryptedImagePath = decryptedTempFilePath ?: currentFilePath
                 AsyncImage(
-                    model = File(currentFilePath),
+                    model = File(decryptedImagePath),
                     contentDescription = currentFileName,
                     modifier = Modifier
                         .fillMaxSize()
