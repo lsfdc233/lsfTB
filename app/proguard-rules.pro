@@ -67,6 +67,28 @@
 -dontwarn rikka.shizuku.**
 
 # ============================================
+# RxJava3 & RxAndroid3
+# ============================================
+-keep class io.reactivex.rxjava3.** { *; }
+-dontwarn io.reactivex.rxjava3.**
+-keepclassmembers class io.reactivex.rxjava3.internal.util.functional.* {
+    *;
+}
+-keep class * extends io.reactivex.rxjava3.core.FlowableSubscriber { *; }
+-keep class * extends io.reactivex.rxjava3.subscribers.SafeSubscriber { *; }
+-keep class * extends io.reactivex.rxjava3.observers.BaseTestObserver { *; }
+-keepclassmembers class rx.internal.util.unsafe.*ArrayQueue*Field* {
+    long producerIndex;
+    long consumerIndex;
+}
+-keepclassmembers class rx.internal.util.unsafe.BaseLinkedQueueProducerNodeRef {
+    rx.internal.util.atomic.LinkedQueueNode producerNode;
+}
+-keepclassmembers class rx.internal.util.unsafe.BaseLinkedQueueConsumerNodeRef {
+    rx.internal.util.atomic.LinkedQueueNode consumerNode;
+}
+
+# ============================================
 # Miuix
 # ============================================
 -keep class top.yukonga.miuix.** { *; }
