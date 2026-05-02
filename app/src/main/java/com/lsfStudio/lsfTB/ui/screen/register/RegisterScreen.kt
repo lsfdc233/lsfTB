@@ -88,6 +88,93 @@ private fun uriToBase64(context: Context, uri: Uri): String? {
 }
 
 /**
+ * 第二阶段：上传头像
+ */
+private suspend fun uploadAvatarPhase(
+    username: String,
+    avatarUri: Uri?,
+    context: Context,
+    onComplete: (Boolean) -> Unit
+) {
+    try {
+        Log.d("RegisterScreen", "📷 开始第二阶段：上传头像")
+        
+        // 1. 将头像转换为 Base64（如果有）
+        var avatarBase64: String? = null
+        if (avatarUri != null) {
+            avatarBase64 = withContext(Dispatchers.IO) {
+                uriToBase64(context, avatarUri)
+            }
+        }
+        
+        // 2. 构建请求体
+        val requestBody = JSONObject().apply {
+            put("username", username)
+            if (avatarBase64 != null) {
+                put("avatar", avatarBase64)
+                Log.d("RegisterScreen", "📤 上传头像，大小: ${avatarBase64.length} chars")
+            } else {
+                put("avatar", JSONObject.NULL)
+                Log.d("RegisterScreen", "📤 无头像，发送 NULL")
+            }
+        }.toString()
+        
+        // 3. 调用头像上传 API
+        val result = withContext(Dispatchers.IO) {
+            val url = "https://www.lsfstudio.top/lsfStudio/api/account/upload-avatar"
+            val request = com.lsfStudio.lsfTB.ui.util.NetworkClient.buildPostRequestWithChallenge(
+                context = context,
+                url = url,
+                path = "/lsfStudio/api/account/upload-avatar",
+                body = requestBody.toRequestBody("application/json".toMediaType()),
+                bodyContent = requestBody,
+                useChallengeResponse = true
+            )
+            
+            val response = com.lsfStudio.lsfTB.ui.util.NetworkClient.execute(request)
+            val responseBody = response.body?.string()
+            
+            Triple(response.isSuccessful, response.code, responseBody)
+        }
+        
+        val (_, code, responseBody) = result
+        Log.d("RegisterScreen", "📥 第二阶段响应: code=$code, body=$responseBody")
+        
+        // 4. 处理响应
+        if (responseBody != null) {
+            try {
+                val json = JSONObject(responseBody)
+                
+                if (json.getBoolean("success")) {
+                    val message = json.getString("message")
+                    if (message == "ALL DONE") {
+                        Log.d("RegisterScreen", "✅ 头像上传成功")
+                        onComplete(true)
+                    } else {
+                        Log.e("RegisterScreen", "❌ 未知响应: $message")
+                        onComplete(false)
+                    }
+                } else {
+                    val message = json.getString("message")
+                    Log.e("RegisterScreen", "❌ 头像上传失败: $message")
+                    onComplete(false)
+                }
+            } catch (e: Exception) {
+                Log.e("RegisterScreen", "❌ 解析JSON失败", e)
+                onComplete(false)
+            }
+        } else {
+            Log.e("RegisterScreen", "❌ 响应体为空: code=$code")
+            onComplete(false)
+        }
+        
+    } catch (e: Exception) {
+        Log.e("RegisterScreen", "❌ 头像上传异常", e)
+        onComplete(false)
+    }
+}
+
+/**
  * 注册页面
  * 
  * 使用 Miuix 控件，适配莫奈取色
@@ -353,8 +440,16 @@ fun RegisterScreen(
                 
                 Button(
                     onClick = {
+                        // 1. 检查邮箱是否为空
                         if (email.isBlank()) {
                             emailError = "请输入邮箱地址"
+                            return@Button
+                        }
+                        
+                        // 2. 验证邮箱格式
+                        val emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$".toRegex()
+                        if (!email.matches(emailRegex)) {
+                            emailError = "请输入有效的邮箱地址"
                             return@Button
                         }
                         
@@ -363,12 +458,26 @@ fun RegisterScreen(
                             try {
                                 Log.d("RegisterScreen", "📧 发送验证码到: $email")
                                 
-                                // 构建请求体
+                                // 3. 获取设备ID（原始二进制数据的 Base64 编码）
+                                val deviceIdBinary = com.lsfStudio.lsfTB.ui.util.DataBase(context)
+                                    .getMetadataBinary("device_id")
+                                
+                                // 将二进制数据转换为 Base64 字符串发送给服务端
+                                val deviceId = if (deviceIdBinary != null) {
+                                    android.util.Base64.encodeToString(deviceIdBinary, android.util.Base64.NO_WRAP)
+                                } else {
+                                    ""  // 如果没有 device_id，发送空字符串
+                                }
+                                
+                                Log.d("RegisterScreen", "📱 Device ID (Base64): $deviceId")
+                                
+                                // 4. 构建请求体（包含 device_id）
                                 val requestBody = JSONObject().apply {
                                     put("email_address", email)
+                                    put("device_id", deviceId)
                                 }.toString()
                                 
-                                // 调用发送验证码 API
+                                // 5. 调用发送验证码 API
                                 val result = withContext(Dispatchers.IO) {
                                     val url = "https://www.lsfstudio.top/lsfStudio/api/account/send-verify-code"
                                     val request = com.lsfStudio.lsfTB.ui.util.NetworkClient.buildPostRequestWithChallenge(
@@ -388,7 +497,7 @@ fun RegisterScreen(
                                 
                                 val (isSuccess, code, responseBody) = result
                                 
-                                // 不管状态码，都尝试解析响应体
+                                // 6. 解析响应
                                 if (responseBody != null) {
                                     try {
                                         val json = JSONObject(responseBody)
@@ -402,9 +511,14 @@ fun RegisterScreen(
                                             val message = json.getString("message")
                                             Log.e("RegisterScreen", "❌ 发送失败: $message")
                                             
-                                            // 根据错误码设置错误状态
-                                            emailError = when (message) {
-                                                "EMAIL ADDRESS IS USED" -> "该邮箱已被注册"
+                                            // 7. 根据错误码设置错误状态
+                                            emailError = when {
+                                                message == "EMAIL ADDRESS IS USED" -> "该邮箱已被注册"
+                                                message.startsWith("TOO MANY CODES WAIT") -> {
+                                                    // 提取等待秒数：TOO MANY CODES WAIT<N>SECOND
+                                                    val waitSeconds = message.replace("TOO MANY CODES WAIT", "").replace("SECOND", "")
+                                                    "请求过于频繁，请${waitSeconds}秒后再试"
+                                                }
                                                 else -> message
                                             }
                                         }
@@ -650,31 +764,21 @@ fun RegisterScreen(
                     isLoading = true
                     scope.launch {
                         try {
-                            Log.d("RegisterScreen", "📝 开始注册: $username")
+                            Log.d("RegisterScreen", "📝 开始注册（第一阶段）: $username")
                             
-                            // 1. 将头像转换为 Base64
-                            var avatarBase64: String? = null
-                            if (avatarUri != null) {
-                                avatarBase64 = withContext(Dispatchers.IO) {
-                                    uriToBase64(context, avatarUri!!)
-                                }
-                            }
-                            
-                            // 2. 构建请求体
+                            // ========== 第一阶段: 注册账户（不含头像）==========
+                            // 1. 构建请求体（不包含 avatar）
                             val requestBody = JSONObject().apply {
                                 put("username", username)
                                 put("password", password)
                                 put("email_address", email)
                                 put("verify_code", verifyCode)
                                 put("register_ip", "")  // 服务端会自动获取
-                                if (avatarBase64 != null) {
-                                    put("avatar", avatarBase64)
-                                }
                             }.toString()
                             
-                            Log.d("RegisterScreen", "📤 请求体: $requestBody")
+                            Log.d("RegisterScreen", "📤 第一阶段请求体: $requestBody")
                             
-                            // 3. 调用注册 API
+                            // 2. 调用注册 API（第一阶段）
                             val result = withContext(Dispatchers.IO) {
                                 val url = "https://www.lsfstudio.top/lsfStudio/api/account/register"
                                 val request = com.lsfStudio.lsfTB.ui.util.NetworkClient.buildPostRequestWithChallenge(
@@ -683,7 +787,7 @@ fun RegisterScreen(
                                     path = "/lsfStudio/api/account/register",
                                     body = requestBody.toRequestBody("application/json".toMediaType()),
                                     bodyContent = requestBody,
-                                    useChallengeResponse = true  // ✅ 所有请求统一使用 Challenge-Response
+                                    useChallengeResponse = true
                                 )
                                 
                                 val response = com.lsfStudio.lsfTB.ui.util.NetworkClient.execute(request)
@@ -694,22 +798,16 @@ fun RegisterScreen(
                             
                             val (isSuccess, code, responseBody) = result
                             
-                            Log.d("RegisterScreen", "📥 响应: code=$code, body=$responseBody")
+                            Log.d("RegisterScreen", "📥 第一阶段响应: code=$code, body=$responseBody")
                             
-                            // 4. 处理响应（不管状态码，都尝试解析响应体）
+                            // 3. 处理第一阶段响应
                             if (responseBody != null) {
                                 try {
                                     val json = JSONObject(responseBody)
                                     
-                                    if (json.getBoolean("success")) {
-                                        Log.d("RegisterScreen", "✅ 注册成功")
-                                        Toast.makeText(context, "注册成功！", Toast.LENGTH_SHORT).show()
-                                        
-                                        // 返回登录页面
-                                        navigator.pop()
-                                    } else {
+                                    if (!json.getBoolean("success")) {
                                         val message = json.getString("message")
-                                        Log.e("RegisterScreen", "❌ 注册失败: $message")
+                                        Log.e("RegisterScreen", "❌ 第一阶段失败: $message")
                                         
                                         // 根据错误码设置对应输入框的错误状态
                                         when (message) {
@@ -717,31 +815,57 @@ fun RegisterScreen(
                                             "NULL VERIFY CODE" -> verifyCodeError = "该邮箱无注册请求"
                                             "WRONG VERIFY CODE" -> verifyCodeError = "验证码错误"
                                             "EMAIL ADDRESS IS USED" -> emailError = "该邮箱已被注册"
-                                            "REGISTER SUCCESS" -> {
-                                                Toast.makeText(context, "注册成功！", Toast.LENGTH_SHORT).show()
-                                                navigator.pop()
-                                            }
                                             else -> {
-                                                // 未知错误，显示在第一个有错误的输入框
                                                 if (usernameError == null) usernameError = message
                                             }
                                         }
+                                        isLoading = false
+                                        return@launch
+                                    }
+                                    
+                                    // ✅ 第一阶段成功
+                                    val message = json.getString("message")
+                                    if (message == "SUCCESS WATING FOR AVATAR") {
+                                        Log.d("RegisterScreen", "✅ 第一阶段成功，准备上传头像")
+                                        withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                            Toast.makeText(context, "注册成功，正在上传头像", Toast.LENGTH_LONG).show()
+                                        }
+                                        
+                                        // ========== 第二阶段: 上传头像 ==========
+                                        uploadAvatarPhase(username, avatarUri, context) { success ->
+                                            scope.launch(kotlinx.coroutines.Dispatchers.Main) {
+                                                if (success) {
+                                                    Log.d("RegisterScreen", "✅ 全部完成")
+                                                    Toast.makeText(context, "注册成功", Toast.LENGTH_LONG).show()
+                                                    navigator.pop()
+                                                } else {
+                                                    Log.e("RegisterScreen", "❌ 头像上传失败，但账户已创建")
+                                                    Toast.makeText(context, "注册成功，但头像上传失败", Toast.LENGTH_LONG).show()
+                                                    navigator.pop()
+                                                }
+                                                isLoading = false
+                                            }
+                                        }
+                                    } else {
+                                        // 未知响应
+                                        Log.e("RegisterScreen", "❌ 未知响应: $message")
+                                        if (usernameError == null) usernameError = "未知错误"
+                                        isLoading = false
                                     }
                                 } catch (e: Exception) {
                                     Log.e("RegisterScreen", "❌ 解析JSON失败", e)
                                     if (usernameError == null) usernameError = "响应格式错误"
+                                    isLoading = false
                                 }
                             } else {
                                 Log.e("RegisterScreen", "❌ 响应体为空: code=$code")
-                                // 网络错误，显示在用户名输入框
                                 if (usernameError == null) usernameError = "网络请求失败 ($code)"
+                                isLoading = false
                             }
                             
                         } catch (e: Exception) {
                             Log.e("RegisterScreen", "❌ 注册异常", e)
-                            // 异常错误，显示在用户名输入框
                             if (usernameError == null) usernameError = "注册失败: ${e.message}"
-                        } finally {
                             isLoading = false
                         }
                     }

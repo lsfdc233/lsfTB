@@ -88,6 +88,10 @@ fun LoginScreen(
     var passwordVisible by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     
+    // 错误状态
+    var usernameError by remember { mutableStateOf<String?>(null) }
+    var passwordError by remember { mutableStateOf<String?>(null) }
+    
     val scope = rememberCoroutineScope()
     
     Box(
@@ -146,12 +150,15 @@ fun LoginScreen(
             // 用户名输入框
             TextField(
                 value = username,
-                onValueChange = { username = it },
+                onValueChange = { 
+                    username = it
+                    usernameError = null  // 清除错误
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .border(
-                        width = 1.dp,
-                        color = colorScheme.onSurface.copy(alpha = 0.2f),
+                        width = if (usernameError != null) 2.dp else 1.dp,
+                        color = if (usernameError != null) Color.Red else colorScheme.onSurface.copy(alpha = 0.2f),
                         shape = RoundedCornerShape(12.dp)
                     )
                     .clip(RoundedCornerShape(12.dp)),
@@ -160,7 +167,7 @@ fun LoginScreen(
                     Icon(
                         imageVector = Icons.Default.Person,
                         contentDescription = "Username",
-                        tint = primaryColor
+                        tint = if (usernameError != null) Color.Red else primaryColor
                     )
                 },
                 singleLine = true,
@@ -172,17 +179,30 @@ fun LoginScreen(
                 )
             )
             
+            // 用户名错误提示
+            if (usernameError != null) {
+                Text(
+                    text = usernameError!!,
+                    fontSize = 12.sp,
+                    color = Color.Red,
+                    modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+                )
+            }
+            
             Spacer(modifier = Modifier.height(12.dp))
             
             // 密码输入框
             TextField(
                 value = password,
-                onValueChange = { password = it },
+                onValueChange = { 
+                    password = it
+                    passwordError = null  // 清除错误
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .border(
-                        width = 1.dp,
-                        color = colorScheme.onSurface.copy(alpha = 0.2f),
+                        width = if (passwordError != null) 2.dp else 1.dp,
+                        color = if (passwordError != null) Color.Red else colorScheme.onSurface.copy(alpha = 0.2f),
                         shape = RoundedCornerShape(12.dp)
                     )
                     .clip(RoundedCornerShape(12.dp)),
@@ -196,7 +216,7 @@ fun LoginScreen(
                     Icon(
                         imageVector = Icons.Default.Lock,
                         contentDescription = "Password",
-                        tint = primaryColor
+                        tint = if (passwordError != null) Color.Red else primaryColor
                     )
                 },
                 trailingIcon = {
@@ -218,6 +238,16 @@ fun LoginScreen(
                     unfocusedIndicatorColor = Color.Transparent
                 )
             )
+            
+            // 密码错误提示
+            if (passwordError != null) {
+                Text(
+                    text = passwordError!!,
+                    fontSize = 12.sp,
+                    color = Color.Red,
+                    modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+                )
+            }
             
             // 忘记密码和注册链接
             Row(
@@ -288,52 +318,76 @@ fun LoginScreen(
                             
                             val (isSuccess, code, responseBody) = result
                             
-                            if (isSuccess && responseBody != null) {
-                                val json = JSONObject(responseBody)
-                                
-                                if (json.getBoolean("success")) {
-                                    val data = json.getJSONObject("data")
+                            // 5. 处理响应（不管状态码，都尝试解析响应体）
+                            if (responseBody != null) {
+                                try {
+                                    val json = JSONObject(responseBody)
                                     
-                                    // 提取用户信息
-                                    val userInfo = AccountManager.UserInfo(
-                                        username = data.getString("username"),
-                                        group = data.getString("group"),
-                                        tag = data.optString("tag", ""),
-                                        level = data.getInt("level"),
-                                        experience = data.getInt("experience"),
-                                        nextLevel = data.getInt("next_level"),
-                                        avatarPath = null  // 头像稍后处理
-                                    )
-                                    
-                                    // 保存头像（如果有）
-                                    val avatarBase64 = data.optString("avatar", "")
-                                    if (avatarBase64.isNotEmpty()) {
-                                        val avatarPath = AccountManager.saveAvatar(context, avatarBase64, userInfo.username)
-                                        // 更新 userInfo 的 avatarPath
-                                        val finalUserInfo = userInfo.copy(avatarPath = avatarPath)
-                                        AccountManager.saveUserInfo(context, finalUserInfo)
+                                    if (json.getBoolean("success")) {
+                                        val data = json.getJSONObject("data")
+                                        
+                                        // 提取用户信息
+                                        val userInfo = AccountManager.UserInfo(
+                                            username = data.getString("username"),
+                                            group = data.getString("group"),
+                                            tag = data.optString("tag", ""),
+                                            level = data.getInt("level"),
+                                            experience = data.getInt("experience"),
+                                            nextLevel = data.getInt("next_level"),
+                                            avatarPath = null  // 头像稍后处理
+                                        )
+                                        
+                                        // 保存头像（如果有）
+                                        val avatarBase64 = data.optString("avatar", "")
+                                        if (avatarBase64.isNotEmpty()) {
+                                            val avatarPath = AccountManager.saveAvatar(context, avatarBase64, userInfo.username)
+                                            // 更新 userInfo 的 avatarPath
+                                            val finalUserInfo = userInfo.copy(avatarPath = avatarPath)
+                                            AccountManager.saveUserInfo(context, finalUserInfo)
+                                        } else {
+                                            AccountManager.saveUserInfo(context, userInfo)
+                                        }
+                                        
+                                        Log.d("LoginScreen", "✅ 登录成功: ${userInfo.username}")
+                                        Toast.makeText(context, "登录成功", Toast.LENGTH_SHORT).show()
+                                        
+                                        // 关闭登录界面
+                                        onLoginSuccess()
                                     } else {
-                                        AccountManager.saveUserInfo(context, userInfo)
+                                        val message = json.getString("message")
+                                        Log.e("LoginScreen", "❌ 登录失败: $message")
+                                        
+                                        // 根据错误消息设置对应的错误状态
+                                        when (message) {
+                                            "UNKNOWN USER" -> {
+                                                usernameError = "用户不存在"
+                                            }
+                                            "YOU ARE PROHIBITED FROM LOGGING IN" -> {
+                                                usernameError = "账户已被封禁，禁止登录"
+                                            }
+                                            "WRONG PASSWORD" -> {
+                                                passwordError = "密码错误"
+                                            }
+                                            else -> {
+                                                // 其他错误显示在用户名输入框
+                                                usernameError = message
+                                            }
+                                        }
                                     }
-                                    
-                                    Log.d("LoginScreen", "✅ 登录成功: ${userInfo.username}")
-                                    Toast.makeText(context, "登录成功", Toast.LENGTH_SHORT).show()
-                                    
-                                    // 关闭登录界面
-                                    onLoginSuccess()
-                                } else {
-                                    val message = json.getString("message")
-                                    Log.e("LoginScreen", "❌ 登录失败: $message")
-                                    Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                                } catch (e: Exception) {
+                                    Log.e("LoginScreen", "❌ 解析JSON失败", e)
+                                    if (usernameError == null) usernameError = "响应格式错误"
                                 }
                             } else {
-                                Log.e("LoginScreen", "❌ 请求失败: $code")
-                                Toast.makeText(context, "网络请求失败 ($code)", Toast.LENGTH_SHORT).show()
+                                Log.e("LoginScreen", "❌ 响应体为空: code=$code")
+                                // 网络错误，显示在用户名输入框
+                                if (usernameError == null) usernameError = "网络请求失败 ($code)"
                             }
                             
                         } catch (e: Exception) {
                             Log.e("LoginScreen", "❌ 登录异常", e)
-                            Toast.makeText(context, "登录失败: ${e.message}", Toast.LENGTH_LONG).show()
+                            // 异常错误，显示在用户名输入框
+                            if (usernameError == null) usernameError = "登录失败: ${e.message}"
                         } finally {
                             isLoading = false
                         }
