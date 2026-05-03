@@ -38,8 +38,6 @@ import com.lsfStudio.lsfTB.ui.util.AccountManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
@@ -295,25 +293,25 @@ fun LoginScreen(
                             val requestBody = JSONObject().apply {
                                 put("username", username)
                                 put("password", password)
+                                put(
+                                    "device_id",
+                                    com.lsfStudio.lsfTB.ui.util.DataBase(context)
+                                        .getMetadataBase64("device_id")
+                                )
                             }.toString()
                             
                             // 在后台线程执行网络请求
                             val result = withContext(Dispatchers.IO) {
-                                // 发送登录请求
                                 val url = "https://www.lsfstudio.top/lsfStudio/api/account/login"
-                                val request = com.lsfStudio.lsfTB.ui.util.NetworkClient.buildPostRequestWithChallenge(
+                                val response = com.lsfStudio.lsfTB.ui.util.NetworkClient.send(
                                     context = context,
+                                    method = "POST",
                                     url = url,
                                     path = "/lsfStudio/api/account/login",
-                                    body = requestBody.toRequestBody("application/json".toMediaType()),
                                     bodyContent = requestBody
-                                    // ✅ 使用默认值 true，启用挑战-响应验证
                                 )
                                 
-                                val response = com.lsfStudio.lsfTB.ui.util.NetworkClient.execute(request)
-                                val responseBody = response.body?.string()
-                                
-                                Triple(response.isSuccessful, response.code, responseBody)
+                                Triple(response.isSuccessful, response.code, response.body)
                             }
                             
                             val (isSuccess, code, responseBody) = result
@@ -333,7 +331,9 @@ fun LoginScreen(
                                             tag = data.optString("tag", ""),
                                             level = data.getInt("level"),
                                             experience = data.getInt("experience"),
+                                            points = data.optInt("points", 0),
                                             nextLevel = data.getInt("next_level"),
+                                            isCheckedIn = data.optString("is_checked_in", "false").toBoolean(),
                                             avatarPath = null  // 头像稍后处理
                                         )
                                         

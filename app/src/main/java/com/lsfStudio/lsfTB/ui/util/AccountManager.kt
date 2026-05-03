@@ -31,7 +31,9 @@ object AccountManager {
         val tag: String,
         val level: Int,
         val experience: Int,
+        val points: Int = 0,
         val nextLevel: Int,
+        val isCheckedIn: Boolean = false,
         val avatarPath: String? = null  // 本地头像路径
     )
     
@@ -53,8 +55,8 @@ object AccountManager {
         db.writableDatabase.execSQL(
             """
             INSERT OR REPLACE INTO account (
-                username, `group`, tag, level, experience, next_level, avatar_path, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                username, `group`, tag, level, experience, points, next_level, is_checked_in, avatar_path, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
             """,
             arrayOf(
                 userInfo.username,
@@ -62,7 +64,9 @@ object AccountManager {
                 userInfo.tag,
                 userInfo.level.toString(),
                 userInfo.experience.toString(),
+                userInfo.points.toString(),
                 userInfo.nextLevel.toString(),
+                userInfo.isCheckedIn.toString(),
                 userInfo.avatarPath
             )
         )
@@ -94,7 +98,9 @@ object AccountManager {
                 tag = cursor.getString(cursor.getColumnIndexOrThrow("tag")),
                 level = cursor.getInt(cursor.getColumnIndexOrThrow("level")),
                 experience = cursor.getInt(cursor.getColumnIndexOrThrow("experience")),
+                points = cursor.getInt(cursor.getColumnIndexOrThrow("points")),
                 nextLevel = cursor.getInt(cursor.getColumnIndexOrThrow("next_level")),
+                isCheckedIn = cursor.getString(cursor.getColumnIndexOrThrow("is_checked_in")).toBoolean(),
                 avatarPath = cursor.getString(cursor.getColumnIndexOrThrow("avatar_path"))
             )
             cursor.close()
@@ -191,12 +197,33 @@ object AccountManager {
                 tag TEXT DEFAULT '',
                 level INTEGER NOT NULL DEFAULT 0,
                 experience INTEGER NOT NULL DEFAULT 0,
+                points INTEGER NOT NULL DEFAULT 0,
                 next_level INTEGER NOT NULL DEFAULT 0,
+                is_checked_in TEXT NOT NULL DEFAULT 'false',
                 avatar_path TEXT,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
             """
         )
+
+        ensureAccountColumn(db, "points", "INTEGER NOT NULL DEFAULT 0")
+        ensureAccountColumn(db, "is_checked_in", "TEXT NOT NULL DEFAULT 'false'")
+    }
+
+    private fun ensureAccountColumn(db: DataBase, columnName: String, definition: String) {
+        val cursor = db.readableDatabase.rawQuery("PRAGMA table_info(account)", null)
+        var exists = false
+        while (cursor.moveToNext()) {
+            if (cursor.getString(cursor.getColumnIndexOrThrow("name")) == columnName) {
+                exists = true
+                break
+            }
+        }
+        cursor.close()
+
+        if (!exists) {
+            db.writableDatabase.execSQL("ALTER TABLE account ADD COLUMN $columnName $definition")
+        }
     }
     
     /**

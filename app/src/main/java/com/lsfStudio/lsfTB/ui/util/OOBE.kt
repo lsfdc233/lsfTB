@@ -15,8 +15,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.RequestBody.Companion.toRequestBody
 
 /**
  * OOBE (Out-of-Box Experience) 模块
@@ -147,23 +145,18 @@ object OOBE {
                 
                 Log.d(TAG, "📦 注册请求体: $registerJson")
                 
-                val jsonMediaType = "application/json; charset=utf-8".toMediaType()
-                val registerBody = okhttp3.RequestBody.create(jsonMediaType, registerJson)
-                
-                val registerRequest = NetworkClient.buildPostRequestWithChallenge(
-                    context = context,
-                    url = "$serverUrl/register",
-                    path = "/lsfStudio/api/register",
-                    body = registerBody,
-                    bodyContent = registerJson,  // 传递原始 JSON 字符串用于签名
-                    useChallengeResponse = false  // 注册接口不使用挑战-响应
-                )
-                
                 val registerResponse = withContext(Dispatchers.IO) {
-                    NetworkClient.execute(registerRequest)
+                    NetworkClient.send(
+                        context = context,
+                        method = "POST",
+                        url = "$serverUrl/register",
+                        path = "/lsfStudio/api/register",
+                        bodyContent = registerJson,
+                        useChallengeResponse = false
+                    )
                 }
                 
-                val registerResponseBody = registerResponse.body?.string()
+                val registerResponseBody = registerResponse.body
                 
                 if (registerResponse.isSuccessful) {
                     Log.d(TAG, "✅ 设备公钥注册成功")
@@ -174,21 +167,19 @@ object OOBE {
                     // 继续，可能已经注册过了
                 }
                 
-                registerResponse.close()
-                
                 // 第二步：测试服务器连通性（自动签名 + 挑战-响应）
                 Log.d(TAG, "📡 发送测试请求...")
                 
                 val testResponse = withContext(Dispatchers.IO) {
-                    val testRequest = NetworkClient.buildGetRequestWithChallenge(
+                    NetworkClient.send(
                         context = context,
+                        method = "GET",
                         url = "$serverUrl/test",
                         path = "/lsfStudio/api/test"
                     )
-                    NetworkClient.execute(testRequest)
                 }
                 
-                val testResponseBody = testResponse.body?.string()
+                val testResponseBody = testResponse.body
                 
                 if (testResponse.isSuccessful) {
                     Log.d(TAG, "✅ 服务器连接测试成功: ${testResponse.code}")
@@ -207,7 +198,7 @@ object OOBE {
                         }
                     }
                 } else {
-                    Log.w(TAG, "⚠️ 服务器返回错误: ${testResponse.code} ${testResponse.message}")
+                    Log.w(TAG, "⚠️ 服务器返回错误: ${testResponse.code}")
                     Log.w(TAG, "   响应: $testResponseBody")
                     
                     android.os.Handler(android.os.Looper.getMainLooper()).post {
@@ -222,8 +213,6 @@ object OOBE {
                         }
                     }
                 }
-                
-                testResponse.close()
                 
                 // 第三步：上报设备信息并接收标识符（自动签名）
                 Log.d(TAG, "📤 上报设备信息...")
@@ -242,23 +231,17 @@ object OOBE {
                 
                 Log.d(TAG, "📦 请求体: $reportJson")
                 
-                val reportBody = okhttp3.RequestBody.create(
-                    "application/json; charset=utf-8".toMediaType(),
-                    reportJson
-                )
-                
                 val reportResponse = withContext(Dispatchers.IO) {
-                    val reportRequest = NetworkClient.buildPostRequestWithChallenge(
+                    NetworkClient.send(
                         context = context,
+                        method = "POST",
                         url = "$serverUrl/report",
                         path = "/lsfStudio/api/report",
-                        body = reportBody,
-                        bodyContent = reportJson  // 传递原始 JSON 字符串用于签名
+                        bodyContent = reportJson
                     )
-                    NetworkClient.execute(reportRequest)
                 }
                 
-                val reportResponseBody = reportResponse.body?.string()
+                val reportResponseBody = reportResponse.body
                 
                 if (reportResponse.isSuccessful) {
                     Log.d(TAG, "✅ 设备信息上报成功")
@@ -288,8 +271,6 @@ object OOBE {
                     Log.w(TAG, "⚠️ 设备信息上报失败: ${reportResponse.code}")
                     Log.w(TAG, "   响应: $reportResponseBody")
                 }
-                
-                reportResponse.close()
                 
             } catch (e: Exception) {
                 Log.e(TAG, "❌ 服务器通信失败", e)

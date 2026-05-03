@@ -12,16 +12,22 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.Call
 import okhttp3.Callback
+import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import okio.Buffer
+import org.json.JSONObject
 import java.io.IOException
+import java.net.SocketTimeoutException
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
 import java.util.UUID
+import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.TimeUnit
 import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
@@ -41,6 +47,34 @@ import javax.net.ssl.X509TrustManager
 object NetworkClient {
     
     private const val TAG = "NetworkClient"
+    private const val CHALLENGE_PATH = "/lsfStudio/api/challenge"
+    private const val CHALLENGE_RESPONSE_PATH = "/lsfStudio/api/challenge/response"
+    private const val ORIGINAL_EARLY_RESULT_WAIT_MS = 200L
+    private const val ORIGINAL_FINAL_WAIT_SECONDS = 65L
+    private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
+
+    data class NetworkResult(
+        val isSuccessful: Boolean,
+        val code: Int,
+        val body: String?
+    )
+
+    private data class TwoPhaseChallengeMeta(
+        val context: Context,
+        val requestId: String,
+        val deviceId: String,
+        val androidId: String
+    )
+
+    private data class ChallengePayload(
+        val requestId: String,
+        val challenge: String
+    )
+
+    private sealed class PendingCallResult {
+        data class Success(val response: Response) : PendingCallResult()
+        data class Failure(val exception: IOException) : PendingCallResult()
+    }
     
     /**
      * 全局唯一的OkHttpClient实例（内部使用）
@@ -98,6 +132,11 @@ object NetworkClient {
      */
     @Throws(IOException::class)
     fun execute(request: Request): Response {
+        val challengeMeta = request.tag(TwoPhaseChallengeMeta::class.java)
+        if (challengeMeta != null) {
+            return executeWithServerChallenge(request, challengeMeta)
+        }
+
         return okHttpClient.newCall(request).execute()
     }
     
@@ -109,6 +148,76 @@ object NetworkClient {
      */
     fun enqueue(request: Request, callback: Callback) {
         okHttpClient.newCall(request).enqueue(callback)
+    }
+
+    /**
+     * 执行请求并统一提取状态码与响应体。
+     */
+    @Throws(IOException::class)
+    fun executeForResult(request: Request): NetworkResult {
+        execute(request).use { response ->
+            return NetworkResult(
+                isSuccessful = response.isSuccessful,
+                code = response.code,
+                body = response.body?.string()
+            )
+        }
+    }
+
+    /**
+     * 页面/模块只提供方法、地址、路径和请求体，由 NetworkClient 完成签名、挑战和收包。
+     */
+    suspend fun send(
+        context: Context,
+        method: String,
+        url: String,
+        path: String,
+        bodyContent: String? = null,
+        headers: Map<String, String> = emptyMap(),
+        useChallengeResponse: Boolean = true,
+        timeoutRetries: Int = 1
+    ): NetworkResult = withContext(Dispatchers.IO) {
+        val normalizedMethod = method.uppercase()
+
+        var attempt = 0
+        while (true) {
+            val request = when (normalizedMethod) {
+                "GET" -> buildGetRequestWithChallenge(
+                    context = context,
+                    url = url,
+                    path = path,
+                    headers = headers,
+                    useChallengeResponse = useChallengeResponse
+                )
+                "POST" -> {
+                    val content = bodyContent ?: ""
+                    buildPostRequestWithChallenge(
+                        context = context,
+                        url = url,
+                        path = path,
+                        body = content.toRequestBody(jsonMediaType),
+                        bodyContent = content,
+                        headers = headers,
+                        useChallengeResponse = useChallengeResponse
+                    )
+                }
+                else -> throw IllegalArgumentException("Unsupported method: $method")
+            }
+
+            try {
+                return@withContext executeForResult(request)
+            } catch (e: SocketTimeoutException) {
+                val finalResponseTimeout = e.message == "等待原请求响应超时"
+                if (attempt >= timeoutRetries || finalResponseTimeout) {
+                    throw e
+                }
+
+                attempt += 1
+                Log.w(TAG, "请求超时，准备重试: attempt=$attempt, path=$path", e)
+            }
+        }
+
+        throw IOException("请求重试流程异常")
     }
     
     /**
@@ -162,31 +271,24 @@ object NetworkClient {
         useChallengeResponse: Boolean = true
     ): Request {
         val builder = Request.Builder()
-            .url(url)
+            .url(resolveSignedUrl(url, path))
             .get()
         
-        // 添加基础签名头
+        // 添加基础签名头和请求ID。挑战在 execute() 中走第二条 HTTP 链路完成。
+        val requestId = generateRequestId()
         val signatureHeaders = generateSignatureHeaders(context, "GET", path, "")
         signatureHeaders.forEach { (key, value) ->
-            builder.addHeader(key, value)
+            builder.header(key, value)
         }
-        
-        // 如果使用挑战-响应，获取并添加挑战签名
+        builder.header("X-Request-ID", requestId)
+
         if (useChallengeResponse) {
-            val challengeData = getChallengeAndSign(context)
-            if (challengeData != null) {
-                challengeData.forEach { (key, value) ->
-                    builder.addHeader(key, value)
-                }
-                Log.d(TAG, "✅ 已添加挑战-响应头")
-            } else {
-                Log.w(TAG, "⚠️ 挑战-响应失败，继续使用基础验证")
-            }
+            attachChallengeMeta(context, builder, requestId, signatureHeaders)
         }
         
         // 添加自定义请求头
         headers.forEach { (key, value) ->
-            builder.addHeader(key, value)
+            builder.header(key, value)
         }
         
         return builder.build()
@@ -214,32 +316,25 @@ object NetworkClient {
         useChallengeResponse: Boolean = true
     ): Request {
         val builder = Request.Builder()
-            .url(url)
+            .url(resolveSignedUrl(url, path))
             .post(body)
         
-        // 添加基础签名头
+        // 添加基础签名头和请求ID。挑战在 execute() 中走第二条 HTTP 链路完成。
+        val requestId = generateRequestId()
         val content = bodyContent ?: readRequestBody(body)
         val signatureHeaders = generateSignatureHeaders(context, "POST", path, content)
         signatureHeaders.forEach { (key, value) ->
-            builder.addHeader(key, value)
+            builder.header(key, value)
         }
-        
-        // 如果使用挑战-响应，获取并添加挑战签名
+        builder.header("X-Request-ID", requestId)
+
         if (useChallengeResponse) {
-            val challengeData = getChallengeAndSign(context)
-            if (challengeData != null) {
-                challengeData.forEach { (key, value) ->
-                    builder.addHeader(key, value)
-                }
-                Log.d(TAG, "✅ 已添加挑战-响应头")
-            } else {
-                Log.w(TAG, "⚠️ 挑战-响应失败，继续使用基础验证")
-            }
+            attachChallengeMeta(context, builder, requestId, signatureHeaders)
         }
         
         // 添加自定义请求头
         headers.forEach { (key, value) ->
-            builder.addHeader(key, value)
+            builder.header(key, value)
         }
         
         return builder.build()
@@ -263,20 +358,22 @@ object NetworkClient {
         autoSign: Boolean = true
     ): Request {
         val builder = Request.Builder()
-            .url(url)
+            .url(resolveSignedUrl(url, path))
             .get()
         
         // 如果需要自动签名，添加签名头
         if (autoSign) {
+            val requestId = generateRequestId()
             val signatureHeaders = generateSignatureHeaders(context, "GET", path, "")
             signatureHeaders.forEach { (key, value) ->
-                builder.addHeader(key, value)
+                builder.header(key, value)
             }
+            builder.header("X-Request-ID", requestId)
         }
         
         // 添加自定义请求头
         headers.forEach { (key, value) ->
-            builder.addHeader(key, value)
+            builder.header(key, value)
         }
         
         return builder.build()
@@ -304,22 +401,24 @@ object NetworkClient {
         autoSign: Boolean = true
     ): Request {
         val builder = Request.Builder()
-            .url(url)
+            .url(resolveSignedUrl(url, path))
             .post(body)
         
         // 如果需要自动签名，添加签名头
         if (autoSign) {
+            val requestId = generateRequestId()
             // 使用提供的 bodyContent 或从 body 中读取
             val content = bodyContent ?: readRequestBody(body)
             val signatureHeaders = generateSignatureHeaders(context, "POST", path, content)
             signatureHeaders.forEach { (key, value) ->
-                builder.addHeader(key, value)
+                builder.header(key, value)
             }
+            builder.header("X-Request-ID", requestId)
         }
         
         // 添加自定义请求头
         headers.forEach { (key, value) ->
-            builder.addHeader(key, value)
+            builder.header(key, value)
         }
         
         return builder.build()
@@ -441,8 +540,222 @@ object NetworkClient {
             null
         }
     }
+
+    @Throws(IOException::class)
+    private fun executeWithServerChallenge(
+        request: Request,
+        meta: TwoPhaseChallengeMeta
+    ): Response {
+        if (!IntegrityChecker.verifyApkIntegrity(meta.context)) {
+            throw IOException("APK完整性校验失败")
+        }
+
+        Log.d(TAG, "🔐 启动双链路挑战流程: requestId=${meta.requestId}")
+
+        val resultQueue = ArrayBlockingQueue<PendingCallResult>(1)
+        val originalCall = okHttpClient.newCall(request)
+
+        originalCall.enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                resultQueue.offer(PendingCallResult.Failure(e))
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                resultQueue.offer(PendingCallResult.Success(response))
+            }
+        })
+
+        try {
+            pollOriginalResult(resultQueue, ORIGINAL_EARLY_RESULT_WAIT_MS)?.let { early ->
+                Log.d(TAG, "原请求在挑战前已返回: ${early.code}")
+                return early
+            }
+
+            val challengePayload = try {
+                fetchPendingChallenge(request, meta)
+            } catch (e: IOException) {
+                pollOriginalResult(resultQueue, 1000L)?.let { return it }
+                throw e
+            }
+            if (!ChallengeResponseSigner.isValidChallenge(challengePayload.challenge)) {
+                originalCall.cancel()
+                throw IOException("服务端挑战格式无效")
+            }
+
+            val signature = ChallengeResponseSigner.signChallenge(challengePayload.challenge)
+                ?: throw IOException("挑战签名失败")
+
+            val challengeAccepted = submitChallengeResponse(
+                request = request,
+                meta = meta,
+                challenge = challengePayload.challenge,
+                signature = signature
+            )
+
+            if (!challengeAccepted) {
+                pollOriginalResult(resultQueue, 5000L)?.let { return it }
+                originalCall.cancel()
+                throw IOException("挑战响应验证失败")
+            }
+
+            return pollOriginalResult(resultQueue, TimeUnit.SECONDS.toMillis(ORIGINAL_FINAL_WAIT_SECONDS))
+                ?: throw SocketTimeoutException("等待原请求响应超时")
+        } catch (e: IOException) {
+            originalCall.cancel()
+            drainPendingResponse(resultQueue)
+            throw e
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            originalCall.cancel()
+            drainPendingResponse(resultQueue)
+            throw IOException("挑战流程被中断", e)
+        } catch (e: Exception) {
+            originalCall.cancel()
+            drainPendingResponse(resultQueue)
+            throw IOException("挑战流程异常", e)
+        }
+    }
+
+    @Throws(IOException::class, InterruptedException::class)
+    private fun pollOriginalResult(
+        resultQueue: ArrayBlockingQueue<PendingCallResult>,
+        timeoutMs: Long
+    ): Response? {
+        val result = resultQueue.poll(timeoutMs, TimeUnit.MILLISECONDS) ?: return null
+        return when (result) {
+            is PendingCallResult.Success -> result.response
+            is PendingCallResult.Failure -> throw result.exception
+        }
+    }
+
+    private fun drainPendingResponse(resultQueue: ArrayBlockingQueue<PendingCallResult>) {
+        val result = resultQueue.poll() ?: return
+        if (result is PendingCallResult.Success) {
+            result.response.close()
+        }
+    }
+
+    @Throws(IOException::class)
+    private fun fetchPendingChallenge(
+        request: Request,
+        meta: TwoPhaseChallengeMeta
+    ): ChallengePayload {
+        val challengeUrl = request.url.newBuilder()
+            .encodedPath(CHALLENGE_PATH)
+            .query(null)
+            .addQueryParameter("requestId", meta.requestId)
+            .build()
+
+        val challengeRequest = Request.Builder()
+            .url(challengeUrl)
+            .get()
+            .header("X-Request-ID", meta.requestId)
+            .header("X-Key-Id", meta.deviceId)
+            .header("X-Android-ID", meta.androidId)
+            .build()
+
+        okHttpClient.newCall(challengeRequest).execute().use { response ->
+            val responseBody = response.body?.string()
+            if (!response.isSuccessful) {
+                throw IOException("获取挑战失败: ${response.code}, $responseBody")
+            }
+
+            val json = JSONObject(responseBody ?: "{}")
+            val challenge = json.optString("challenge", "")
+            val requestId = json.optString("requestId", meta.requestId)
+
+            if (challenge.isEmpty()) {
+                throw IOException("挑战响应为空")
+            }
+
+            Log.d(TAG, "✅ 收到服务端挑战: requestId=$requestId")
+            return ChallengePayload(requestId, challenge)
+        }
+    }
+
+    @Throws(IOException::class)
+    private fun submitChallengeResponse(
+        request: Request,
+        meta: TwoPhaseChallengeMeta,
+        challenge: String,
+        signature: String
+    ): Boolean {
+        val responseUrl = request.url.newBuilder()
+            .encodedPath(CHALLENGE_RESPONSE_PATH)
+            .query(null)
+            .build()
+
+        val responseJson = JSONObject().apply {
+            put("requestId", meta.requestId)
+            put("androidId", meta.androidId)
+            put("challenge", challenge)
+            put("signature", signature)
+        }.toString()
+
+        val challengeResponseRequest = Request.Builder()
+            .url(responseUrl)
+            .post(responseJson.toRequestBody(jsonMediaType))
+            .header("X-Request-ID", meta.requestId)
+            .header("X-Key-Id", meta.deviceId)
+            .header("X-Android-ID", meta.androidId)
+            .build()
+
+        okHttpClient.newCall(challengeResponseRequest).execute().use { response ->
+            val responseBody = response.body?.string()
+            if (!response.isSuccessful) {
+                Log.e(TAG, "❌ 挑战响应提交失败: ${response.code}, $responseBody")
+                return false
+            }
+
+            val json = JSONObject(responseBody ?: "{}")
+            val success = json.optBoolean("success", false)
+            Log.d(TAG, "✅ 挑战响应提交结果: $success")
+            return success
+        }
+    }
     
     // ==================== 私有辅助函数 ====================
+
+    private fun generateRequestId(): String {
+        return UUID.randomUUID().toString()
+    }
+
+    private fun resolveSignedUrl(url: String, path: String): String {
+        val httpUrl = url.toHttpUrl()
+        if (httpUrl.encodedPath == path) {
+            return url
+        }
+
+        val resolvedUrl = httpUrl.newBuilder()
+            .encodedPath(path)
+            .build()
+            .toString()
+
+        Log.d(TAG, "修正请求URL路径: $url -> $resolvedUrl")
+        return resolvedUrl
+    }
+
+    private fun attachChallengeMeta(
+        context: Context,
+        builder: Request.Builder,
+        requestId: String,
+        signatureHeaders: Map<String, String>
+    ) {
+        val deviceId = signatureHeaders["X-Key-Id"].orEmpty()
+        val androidId = signatureHeaders["X-Android-ID"].orEmpty()
+
+        builder.tag(
+            TwoPhaseChallengeMeta::class.java,
+            TwoPhaseChallengeMeta(
+                context = context.applicationContext,
+                requestId = requestId,
+                deviceId = deviceId,
+                androidId = androidId
+            )
+        )
+
+        Log.d(TAG, "已绑定双链路挑战元数据: requestId=$requestId")
+    }
     
     /**
      * 生成签名请求头

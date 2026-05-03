@@ -64,7 +64,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaType
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import com.lsfStudio.lsfTB.R
 import com.lsfStudio.lsfTB.ui.component.dialog.ConfirmDialogMiuix
@@ -504,26 +503,20 @@ private fun verifyIdentifierWithServer(context: Context, userInput: String) {
             jsonBody.put("inputText", userInput)
             val verifyJson = jsonBody.toString()
             
-            val requestBody = okhttp3.RequestBody.create(
-                "application/json; charset=utf-8".toMediaType(),
-                verifyJson
-            )
-            
             // 获取服务器 URL（使用 BuildConfig）
             val serverUrl = com.lsfStudio.lsfTB.BuildConfig.SERVER_URL
             
             // 构建请求并执行（NetworkClient 自动签名 + 挑战-响应）
-            val (response, responseBody) = withContext(Dispatchers.IO) {
-                val request = com.lsfStudio.lsfTB.ui.util.NetworkClient.buildPostRequestWithChallenge(
+            val response = withContext(Dispatchers.IO) {
+                com.lsfStudio.lsfTB.ui.util.NetworkClient.send(
                     context = context,
+                    method = "POST",
                     url = "$serverUrl/verify",
                     path = "/lsfStudio/api/verify",
-                    body = requestBody,
-                    bodyContent = verifyJson  // 传递原始 JSON 字符串用于签名
+                    bodyContent = verifyJson
                 )
-                val resp = com.lsfStudio.lsfTB.ui.util.NetworkClient.execute(request)
-                Pair(resp, resp.body?.string())
             }
+            val responseBody = response.body
             
             if (response.isSuccessful && responseBody != null) {
                 val jsonResponse = org.json.JSONObject(responseBody)
@@ -555,9 +548,6 @@ private fun verifyIdentifierWithServer(context: Context, userInput: String) {
                 }
                 Log.e("AboutMiuix", "❌ 验证请求失败: ${response.code}, 响应: $responseBody")
             }
-            
-            response.close()
-            
         } catch (e: Exception) {
             Log.e("AboutMiuix", "❌ 验证异常", e)
             withContext(Dispatchers.Main) {

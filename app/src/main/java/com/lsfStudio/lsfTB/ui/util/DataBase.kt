@@ -4,6 +4,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import android.util.Base64
 import android.util.Log
 
 /**
@@ -159,6 +160,15 @@ class DataBase(context: Context) : SQLiteOpenHelper(
                 null
             }
         }
+    }
+
+    /**
+     * 获取元数据并编码为 Base64 字符串。
+     * 用于传输 MetaData.device_id 这种二进制标识符。
+     */
+    fun getMetadataBase64(key: String): String {
+        val binary = getMetadataBinary(key) ?: return ""
+        return Base64.encodeToString(binary, Base64.NO_WRAP)
     }
     
     /**

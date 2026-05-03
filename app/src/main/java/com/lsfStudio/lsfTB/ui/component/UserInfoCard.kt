@@ -179,6 +179,12 @@ fun UserInfoCard(
                                     level = userInfo.level,
                                     accentColor = accentColor
                                 )
+
+                                TagBadge(
+                                    text = "${userInfo.points} 积分",
+                                    backgroundColor = accentColor.copy(alpha = 0.15f),
+                                    textColor = accentColor
+                                )
                             }
                         }
                     }
@@ -187,7 +193,7 @@ fun UserInfoCard(
                     if (isLoggedIn) {
                         SignInButton(
                             modifier = Modifier,
-                            isSignedIn = false, // TODO: 实现签到状态
+                            isSignedIn = userInfo!!.isCheckedIn,
                             onClick = onSignInClick,
                             accentColor = accentColor,
                             compact = true

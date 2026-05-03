@@ -58,8 +58,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
@@ -122,19 +120,16 @@ private suspend fun uploadAvatarPhase(
         // 3. 调用头像上传 API
         val result = withContext(Dispatchers.IO) {
             val url = "https://www.lsfstudio.top/lsfStudio/api/account/upload-avatar"
-            val request = com.lsfStudio.lsfTB.ui.util.NetworkClient.buildPostRequestWithChallenge(
+            val response = com.lsfStudio.lsfTB.ui.util.NetworkClient.send(
                 context = context,
+                method = "POST",
                 url = url,
                 path = "/lsfStudio/api/account/upload-avatar",
-                body = requestBody.toRequestBody("application/json".toMediaType()),
                 bodyContent = requestBody,
                 useChallengeResponse = true
             )
             
-            val response = com.lsfStudio.lsfTB.ui.util.NetworkClient.execute(request)
-            val responseBody = response.body?.string()
-            
-            Triple(response.isSuccessful, response.code, responseBody)
+            Triple(response.isSuccessful, response.code, response.body)
         }
         
         val (_, code, responseBody) = result
@@ -459,15 +454,8 @@ fun RegisterScreen(
                                 Log.d("RegisterScreen", "📧 发送验证码到: $email")
                                 
                                 // 3. 获取设备ID（原始二进制数据的 Base64 编码）
-                                val deviceIdBinary = com.lsfStudio.lsfTB.ui.util.DataBase(context)
-                                    .getMetadataBinary("device_id")
-                                
-                                // 将二进制数据转换为 Base64 字符串发送给服务端
-                                val deviceId = if (deviceIdBinary != null) {
-                                    android.util.Base64.encodeToString(deviceIdBinary, android.util.Base64.NO_WRAP)
-                                } else {
-                                    ""  // 如果没有 device_id，发送空字符串
-                                }
+                                val deviceId = com.lsfStudio.lsfTB.ui.util.DataBase(context)
+                                    .getMetadataBase64("device_id")
                                 
                                 Log.d("RegisterScreen", "📱 Device ID (Base64): $deviceId")
                                 
@@ -480,19 +468,16 @@ fun RegisterScreen(
                                 // 5. 调用发送验证码 API
                                 val result = withContext(Dispatchers.IO) {
                                     val url = "https://www.lsfstudio.top/lsfStudio/api/account/send-verify-code"
-                                    val request = com.lsfStudio.lsfTB.ui.util.NetworkClient.buildPostRequestWithChallenge(
+                                    val response = com.lsfStudio.lsfTB.ui.util.NetworkClient.send(
                                         context = context,
+                                        method = "POST",
                                         url = url,
                                         path = "/lsfStudio/api/account/send-verify-code",
-                                        body = requestBody.toRequestBody("application/json".toMediaType()),
                                         bodyContent = requestBody,
                                         useChallengeResponse = true  // ✅ 所有请求统一使用 Challenge-Response
                                     )
                                     
-                                    val response = com.lsfStudio.lsfTB.ui.util.NetworkClient.execute(request)
-                                    val responseBody = response.body?.string()
-                                    
-                                    Triple(response.isSuccessful, response.code, responseBody)
+                                    Triple(response.isSuccessful, response.code, response.body)
                                 }
                                 
                                 val (isSuccess, code, responseBody) = result
@@ -774,6 +759,11 @@ fun RegisterScreen(
                                 put("email_address", email)
                                 put("verify_code", verifyCode)
                                 put("register_ip", "")  // 服务端会自动获取
+                                put(
+                                    "device_id",
+                                    com.lsfStudio.lsfTB.ui.util.DataBase(context)
+                                        .getMetadataBase64("device_id")
+                                )
                             }.toString()
                             
                             Log.d("RegisterScreen", "📤 第一阶段请求体: $requestBody")
@@ -781,19 +771,16 @@ fun RegisterScreen(
                             // 2. 调用注册 API（第一阶段）
                             val result = withContext(Dispatchers.IO) {
                                 val url = "https://www.lsfstudio.top/lsfStudio/api/account/register"
-                                val request = com.lsfStudio.lsfTB.ui.util.NetworkClient.buildPostRequestWithChallenge(
+                                val response = com.lsfStudio.lsfTB.ui.util.NetworkClient.send(
                                     context = context,
+                                    method = "POST",
                                     url = url,
                                     path = "/lsfStudio/api/account/register",
-                                    body = requestBody.toRequestBody("application/json".toMediaType()),
                                     bodyContent = requestBody,
                                     useChallengeResponse = true
                                 )
                                 
-                                val response = com.lsfStudio.lsfTB.ui.util.NetworkClient.execute(request)
-                                val responseBody = response.body?.string()
-                                
-                                Triple(response.isSuccessful, response.code, responseBody)
+                                Triple(response.isSuccessful, response.code, response.body)
                             }
                             
                             val (isSuccess, code, responseBody) = result
