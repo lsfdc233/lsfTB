@@ -180,11 +180,6 @@ fun UserInfoCard(
                                     accentColor = accentColor
                                 )
 
-                                TagBadge(
-                                    text = "${userInfo.points} 积分",
-                                    backgroundColor = accentColor.copy(alpha = 0.15f),
-                                    textColor = accentColor
-                                )
                             }
                         }
                     }
