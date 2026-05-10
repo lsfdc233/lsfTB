@@ -42,8 +42,8 @@ class SettingsViewModel(
             val enableSmoothCorner = repo.enableSmoothCorner
             val disableAllAnimations = repo.disableAllAnimations
             
-            // 检查开发者模式状态
-            val devModeEnabled = com.lsfStudio.lsfTB.ui.util.DebugShellReceiver.isDevModeEnabled(context)
+            // 检查开发者模式状态（优先检查服务端 permissions）
+            val devModeEnabled = com.lsfStudio.lsfTB.ui.util.Debug.isDebugEnabled(context)
 
             _uiState.update {
                 it.copy(

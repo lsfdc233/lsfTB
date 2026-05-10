@@ -160,6 +160,14 @@ class MainActivity : ComponentActivity() {
             android.util.Log.e("MainActivity", "❌ 2FA数据库中间件初始化失败", e)
         }
         
+        // 👤 UserManager 初始化（确保 user_info 表存在）
+        try {
+            com.lsfStudio.lsfTB.ui.util.UserManager.initialize(applicationContext)
+            android.util.Log.d("MainActivity", "✅ UserManager 初始化完成")
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "❌ UserManager 初始化失败", e)
+        }
+        
         // 🧪 数据库测试（仅调试模式，测试完成后请注释）
         // if (BuildConfig.DEBUG) {
         //     com.lsfStudio.lsfTB.ui.screen.vault.DatabaseTest.runTest(applicationContext)

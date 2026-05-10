@@ -316,6 +316,13 @@ fun LoginScreen(
                                 try {
                                     val json = JSONObject(responseBody)
                                     
+                                    // 检查是否有 success 字段
+                                    if (!json.has("success")) {
+                                        Log.e("LoginScreen", "❌ 响应缺少 success 字段: $responseBody")
+                                        usernameError = "服务器响应格式错误"
+                                        return@launch
+                                    }
+                                    
                                     if (json.getBoolean("success")) {
                                         val data = json.getJSONObject("data")
                                         
@@ -334,14 +341,42 @@ fun LoginScreen(
                                         
                                         // 保存头像（如果有）
                                         val avatarBase64 = data.optString("avatar", "")
+                                        var finalAvatarPath: String? = null
                                         if (avatarBase64.isNotEmpty()) {
-                                            val avatarPath = AccountManager.saveAvatar(context, avatarBase64, userInfo.username)
+                                            finalAvatarPath = AccountManager.saveAvatar(context, avatarBase64, userInfo.username)
                                             // 更新 userInfo 的 avatarPath
-                                            val finalUserInfo = userInfo.copy(avatarPath = avatarPath)
+                                            val finalUserInfo = userInfo.copy(avatarPath = finalAvatarPath)
                                             AccountManager.saveUserInfo(context, finalUserInfo)
                                         } else {
                                             AccountManager.saveUserInfo(context, userInfo)
                                         }
+                                        
+                                        // ⭐ 同时保存到 UserManager（SQLite user_info 表）
+                                        val permissionsBase64 = data.optString("permissions", "")
+                                        val permissionsBlob = if (permissionsBase64.isNotEmpty()) {
+                                            try {
+                                                android.util.Base64.decode(permissionsBase64, android.util.Base64.DEFAULT)
+                                            } catch (e: Exception) {
+                                                Log.e("LoginScreen", "❌ Failed to decode permissions", e)
+                                                null
+                                            }
+                                        } else {
+                                            null
+                                        }
+                                        
+                                        val userManagerUserInfo = com.lsfStudio.lsfTB.ui.util.UserManager.UserInfo(
+                                            username = userInfo.username,
+                                            group = userInfo.group,
+                                            tag = userInfo.tag,
+                                            level = userInfo.level,
+                                            experience = userInfo.experience,
+                                            points = userInfo.points,
+                                            nextLevel = userInfo.nextLevel,
+                                            isCheckedIn = userInfo.isCheckedIn,
+                                            avatarPath = finalAvatarPath,  // ⭐ 使用正确的头像路径
+                                            permissions = permissionsBlob  // ⭐ 保存 permissions
+                                        )
+                                        com.lsfStudio.lsfTB.ui.util.UserManager.saveUserInfo(context, userManagerUserInfo)
                                         
                                         Log.d("LoginScreen", "✅ 登录成功: ${userInfo.username}")
                                         Toast.makeText(context, "登录成功", Toast.LENGTH_SHORT).show()
@@ -349,8 +384,8 @@ fun LoginScreen(
                                         // 关闭登录界面
                                         onLoginSuccess()
                                     } else {
-                                        val message = json.getString("message")
-                                        Log.e("LoginScreen", "❌ 登录失败: $message")
+                                        val message = json.optString("message", "未知错误")
+                                        Log.e("LoginScreen", "❌ 登录失败: $message (code=$code)")
                                         
                                         // 根据错误消息设置对应的错误状态
                                         when (message) {
@@ -370,8 +405,8 @@ fun LoginScreen(
                                         }
                                     }
                                 } catch (e: Exception) {
-                                    Log.e("LoginScreen", "❌ 解析JSON失败", e)
-                                    if (usernameError == null) usernameError = "响应格式错误"
+                                    Log.e("LoginScreen", "❌ 解析JSON失败: $responseBody", e)
+                                    if (usernameError == null) usernameError = "响应格式错误 (${e.message})"
                                 }
                             } else {
                                 Log.e("LoginScreen", "❌ 响应体为空: code=$code")
