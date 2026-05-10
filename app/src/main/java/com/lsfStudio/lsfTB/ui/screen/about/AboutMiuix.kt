@@ -367,26 +367,7 @@ fun AboutScreenMiuix(
         val context = androidx.compose.ui.platform.LocalContext.current
         var userInput by remember { mutableStateOf("") }
         
-        // 🔧 检测当前是否为开发版（数据库中存储的是 "dev"）
-        val isDevMode = remember {
-            try {
-                val dataBaseClass = Class.forName("com.lsfStudio.lsfTB.ui.util.DataBase")
-                val dataBaseConstructor = dataBaseClass.getConstructor(Context::class.java)
-                val dataBase = dataBaseConstructor.newInstance(context)
-                
-                val oobeClass = Class.forName("com.lsfStudio.lsfTB.ui.util.OOBE")
-                val keyDeviceIdField = oobeClass.getDeclaredField("KEY_DEVICE_ID")
-                val keyDeviceId = keyDeviceIdField.get(null) as String
-                
-                val getMetadataMethod = dataBaseClass.getMethod("getMetadataText", String::class.java)
-                val storedValue = getMetadataMethod.invoke(dataBase, keyDeviceId) as String?
-                
-                storedValue == "dev"
-            } catch (e: Exception) {
-                Log.w("AboutMiuix", "⚠️ 检测开发版状态失败", e)
-                false
-            }
-        }
+        val isDevMode = false
         
         WindowDialog(
             show = true,

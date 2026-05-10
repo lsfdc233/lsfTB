@@ -293,11 +293,6 @@ fun LoginScreen(
                             val requestBody = JSONObject().apply {
                                 put("username", username)
                                 put("password", password)
-                                put(
-                                    "device_id",
-                                    com.lsfStudio.lsfTB.ui.util.DataBase(context)
-                                        .getMetadataBase64("device_id")
-                                )
                             }.toString()
                             
                             // 在后台线程执行网络请求

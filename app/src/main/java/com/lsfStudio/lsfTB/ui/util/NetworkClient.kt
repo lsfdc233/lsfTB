@@ -63,7 +63,8 @@ object NetworkClient {
         val context: Context,
         val requestId: String,
         val deviceId: String,
-        val androidId: String
+        val androidId: String,
+        val uid: String? = null
     )
 
     private data class ChallengePayload(
@@ -759,12 +760,6 @@ object NetworkClient {
     
     /**
      * 生成签名请求头
-     * 
-     * @param context 上下文
-     * @param method HTTP方法（GET/POST）
-     * @param path API路径
-     * @param body 请求体内容（GET为空字符串）
-     * @return 签名请求头Map
      */
     private fun generateSignatureHeaders(
         context: Context,
@@ -777,6 +772,7 @@ object NetworkClient {
         val deviceId = KeystoreManager.getDeviceId(context)
         val apkSignature = getApkSignature(context)
         val androidId = getAndroidId(context)
+        val uid = DataBase(context).getMetadataText(OOBE.KEY_UID)
         
         // 生成签名字符串
         val stringToSign = "$method\n$path\n$body\n$timestamp\n$nonce"
@@ -790,6 +786,7 @@ object NetworkClient {
         Log.d(TAG, "   Signature: ${signature.take(32)}...")
         Log.d(TAG, "   APK Signature: $apkSignature")
         Log.d(TAG, "   Android ID: $androidId")
+        Log.d(TAG, "   UID: $uid")
         
         return mapOf(
             "X-Timestamp" to timestamp,
@@ -797,7 +794,8 @@ object NetworkClient {
             "X-Signature" to signature,
             "X-Key-Id" to deviceId,
             "X-APK-Signature" to apkSignature,
-            "X-Android-ID" to androidId
+            "X-Android-ID" to androidId,
+            "X-UID" to (uid ?: "0")
         )
     }
     

@@ -41,7 +41,8 @@ object OOBE {
     const val KEY_DEVICE_DEVICE = "device_device"     // 设备代号
     const val KEY_DEVICE_BOARD = "device_board"       // 主板
     const val KEY_DEVICE_HARDWARE = "device_hardware" // 硬件平台
-    const val KEY_DEVICE_ID = "device_id"  // 预留的设备ID键
+    const val KEY_DEVICE_ID = "device_id"             // 旧版本兼容键，客户端不再写入
+    const val KEY_UID = "device_uid"                  // 服务端分配的唯一 UID
     
     /**
      * 设备信息数据类
@@ -107,9 +108,8 @@ object OOBE {
      */
     private fun fallbackToDevMode(dataBase: DataBase) {
         try {
-            // 将 device_id 设置为 "dev" 的二进制形式（简单存储文本）
-            dataBase.insertOrReplaceMetadataText(KEY_DEVICE_ID, "dev")
-            Log.d(TAG, "✅ 已设置开发版标识符: dev")
+            dataBase.deleteMetadata(KEY_DEVICE_ID)
+            Log.d(TAG, "✅ 已清理旧版 device_id")
         } catch (e: Exception) {
             Log.e(TAG, "❌ 设置开发版标识符失败", e)
         }
@@ -129,99 +129,42 @@ object OOBE {
                 
                 Log.d(TAG, "🌐 服务器 URL: $serverUrl")
                 
-                // 第一步：注册设备公钥（不签名）
+                // 第一步：注册设备公钥 (Bootstrap)
                 val deviceId = KeystoreManager.getDeviceId(context)
                 val publicKey = KeystoreManager.exportPublicKey()
                 
                 Log.d(TAG, "🔑 注册设备公钥...")
                 Log.d(TAG, "   Device ID: $deviceId")
-                Log.d(TAG, "   Public Key Length: ${publicKey.length} chars")
                 
-                // 构建紧凑的 JSON（无空格，确保签名一致）
-                val registerJson = org.json.JSONObject().apply {
-                    put("deviceId", deviceId)
-                    put("publicKey", publicKey)
+                // 构建紧凑的 JSON
+                val registerKeyJson = org.json.JSONObject().apply {
+                    put("public_key", publicKey)
                 }.toString()
                 
-                Log.d(TAG, "📦 注册请求体: $registerJson")
-                
-                val registerResponse = withContext(Dispatchers.IO) {
+                val registerKeyResponse = withContext(Dispatchers.IO) {
                     NetworkClient.send(
                         context = context,
                         method = "POST",
-                        url = "$serverUrl/register",
-                        path = "/lsfStudio/api/register",
-                        bodyContent = registerJson,
+                        url = "$serverUrl/register-key",
+                        path = "/lsfStudio/api/register-key",
+                        bodyContent = registerKeyJson,
                         useChallengeResponse = false
                     )
                 }
                 
-                val registerResponseBody = registerResponse.body
-                
-                if (registerResponse.isSuccessful) {
+                if (registerKeyResponse.isSuccessful) {
                     Log.d(TAG, "✅ 设备公钥注册成功")
-                    Log.d(TAG, "   响应: $registerResponseBody")
                 } else {
-                    Log.w(TAG, "⚠️ 设备公钥注册失败: ${registerResponse.code}")
-                    Log.w(TAG, "   响应: $registerResponseBody")
-                    // 继续，可能已经注册过了
+                    Log.w(TAG, "⚠️ 设备公钥注册失败: ${registerKeyResponse.code}")
+                    return@launch
                 }
                 
-                // 第二步：测试服务器连通性（自动签名 + 挑战-响应）
-                Log.d(TAG, "📡 发送测试请求...")
-                
-                val testResponse = withContext(Dispatchers.IO) {
-                    NetworkClient.send(
-                        context = context,
-                        method = "GET",
-                        url = "$serverUrl/test",
-                        path = "/lsfStudio/api/test"
-                    )
-                }
-                
-                val testResponseBody = testResponse.body
-                
-                if (testResponse.isSuccessful) {
-                    Log.d(TAG, "✅ 服务器连接测试成功: ${testResponse.code}")
-                    Log.d(TAG, "   响应: $testResponseBody")
-                    
-                    // 在主线程显示 Toast
-                    android.os.Handler(android.os.Looper.getMainLooper()).post {
-                        try {
-                            MessageManager.showToast(
-                                context,
-                                "测试服务器连通性：${testResponse.code}",
-                                Toast.LENGTH_SHORT
-                            )
-                        } catch (e: Exception) {
-                            Log.e(TAG, "显示 Toast 失败", e)
-                        }
-                    }
-                } else {
-                    Log.w(TAG, "⚠️ 服务器返回错误: ${testResponse.code}")
-                    Log.w(TAG, "   响应: $testResponseBody")
-                    
-                    android.os.Handler(android.os.Looper.getMainLooper()).post {
-                        try {
-                            MessageManager.showToast(
-                                context,
-                                "测试服务器连通性：${testResponse.code}",
-                                Toast.LENGTH_LONG
-                            )
-                        } catch (e: Exception) {
-                            Log.e(TAG, "显示 Toast 失败", e)
-                        }
-                    }
-                }
-                
-                // 第三步：上报设备信息并接收标识符（自动签名）
-                Log.d(TAG, "📤 上报设备信息...")
+                // 第二步：上报设备元数据并接收 UID
+                Log.d(TAG, "📤 上报设备元数据...")
                 val deviceInfo = collectDeviceInfo(context)
                 
-                // 构建紧凑的 JSON（无空格，确保签名一致）
                 val reportJson = org.json.JSONObject().apply {
-                    put("deviceId", deviceId)
-                    put("androidId", deviceInfo.androidId)
+                    put("android_id", deviceInfo.androidId)
                     put("brand", deviceInfo.brand)
                     put("model", deviceInfo.model)
                     put("device", deviceInfo.device)
@@ -229,47 +172,32 @@ object OOBE {
                     put("hardware", deviceInfo.hardware)
                 }.toString()
                 
-                Log.d(TAG, "📦 请求体: $reportJson")
-                
                 val reportResponse = withContext(Dispatchers.IO) {
                     NetworkClient.send(
                         context = context,
                         method = "POST",
-                        url = "$serverUrl/report",
-                        path = "/lsfStudio/api/report",
+                        url = "$serverUrl/register",
+                        path = "/lsfStudio/api/register",
                         bodyContent = reportJson
                     )
                 }
                 
-                val reportResponseBody = reportResponse.body
-                
                 if (reportResponse.isSuccessful) {
-                    Log.d(TAG, "✅ 设备信息上报成功")
-                    Log.d(TAG, "   响应: $reportResponseBody")
-                    
-                    // 解析响应，获取二进制标识符
+                    Log.d(TAG, "✅ 设备元数据上报成功")
                     try {
-                        val jsonResponse = org.json.JSONObject(reportResponseBody ?: "{}")
-                        val binaryIdentifierBase64 = jsonResponse.optString("binaryIdentifier", "")
-                        
-                        if (binaryIdentifierBase64.isNotEmpty()) {
-                            Log.d(TAG, "🔑 接收到二进制标识符")
-                            
-                            // 解码 Base64
-                            val binaryIdentifier = android.util.Base64.decode(binaryIdentifierBase64, android.util.Base64.DEFAULT)
-                            
-                            // 通过 DataBase 存储到数据库
-                            dataBase.insertOrReplaceMetadata(KEY_DEVICE_ID, binaryIdentifier)
-                            
-                            Log.d(TAG, "✅ 标识符已存储到数据库")
-                            Log.d(TAG, "   长度: ${binaryIdentifier.size} bytes")
+                        val jsonResponse = org.json.JSONObject(reportResponse.body ?: "{}")
+                        val uid = jsonResponse.optJSONObject("data")?.optInt("uid", -1)
+                        if (uid != null && uid != -1) {
+                            // 存储 UID
+                            dataBase.insertOrReplaceMetadataText(KEY_UID, uid.toString())
+                            dataBase.deleteMetadata(KEY_DEVICE_ID)
+                            Log.d(TAG, "✅ UID 已存储: $uid")
                         }
                     } catch (e: Exception) {
-                        Log.e(TAG, "❌ 解析标识符失败", e)
+                        Log.e(TAG, "❌ 解析 UID 失败", e)
                     }
                 } else {
-                    Log.w(TAG, "⚠️ 设备信息上报失败: ${reportResponse.code}")
-                    Log.w(TAG, "   响应: $reportResponseBody")
+                    Log.w(TAG, "⚠️ 设备元数据上报失败: ${reportResponse.code}")
                 }
                 
             } catch (e: Exception) {
@@ -415,6 +343,7 @@ object OOBE {
         try {
             // 定义需要显示的键名映射
             val keyDisplayNames = mapOf(
+                KEY_UID to "设备 UID",
                 KEY_ANDROID_ID to "Android ID",
                 KEY_DEVICE_BRAND to "品牌",
                 KEY_DEVICE_MODEL to "型号",

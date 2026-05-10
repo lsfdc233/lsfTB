@@ -453,16 +453,8 @@ fun RegisterScreen(
                             try {
                                 Log.d("RegisterScreen", "📧 发送验证码到: $email")
                                 
-                                // 3. 获取设备ID（原始二进制数据的 Base64 编码）
-                                val deviceId = com.lsfStudio.lsfTB.ui.util.DataBase(context)
-                                    .getMetadataBase64("device_id")
-                                
-                                Log.d("RegisterScreen", "📱 Device ID (Base64): $deviceId")
-                                
-                                // 4. 构建请求体（包含 device_id）
                                 val requestBody = JSONObject().apply {
                                     put("email_address", email)
-                                    put("device_id", deviceId)
                                 }.toString()
                                 
                                 // 5. 调用发送验证码 API
@@ -759,11 +751,6 @@ fun RegisterScreen(
                                 put("email_address", email)
                                 put("verify_code", verifyCode)
                                 put("register_ip", "")  // 服务端会自动获取
-                                put(
-                                    "device_id",
-                                    com.lsfStudio.lsfTB.ui.util.DataBase(context)
-                                        .getMetadataBase64("device_id")
-                                )
                             }.toString()
                             
                             Log.d("RegisterScreen", "📤 第一阶段请求体: $requestBody")
