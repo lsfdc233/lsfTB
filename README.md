@@ -59,9 +59,11 @@ lsfTB/
 │   ├── src/main/
 │   │   ├── java/com/lsfStudio/lsfTB/
 │   │   │   ├── data/                      # 数据层
+│   │   │   │   ├── database/              # 数据库（空）
 │   │   │   │   ├── model/                 # 数据模型
-│   │   │   │   │   └── VaultFile.kt      # 保险箱文件模型
+│   │   │   │   │   └── VaultFile.kt       # 保险箱文件模型
 │   │   │   │   └── repository/            # 数据仓库接口与实现
+│   │   │   │       ├── CategoryRepository.kt
 │   │   │   │       ├── SettingsRepository.kt
 │   │   │   │       └── SettingsRepositoryImpl.kt
 │   │   │   ├── ui/                        # UI 层
@@ -86,67 +88,83 @@ lsfTB/
 │   │   │   │   │   └── Routes.kt                 # 路由定义
 │   │   │   │   ├── screen/                # 页面模块
 │   │   │   │   │   ├── about/             # 关于页面
+│   │   │   │   │   │   ├── AboutMiuix.kt
 │   │   │   │   │   │   ├── AboutScreen.kt
-│   │   │   │   │   │   ├── AboutScreenMiuix.kt
-│   │   │   │   │   │   ├── AboutViewModel.kt
-│   │   │   │   │   │   └── UpdateChecker.kt
+│   │   │   │   │   │   ├── AboutUiState.kt
+│   │   │   │   │   │   └── AboutUtils.kt
 │   │   │   │   │   ├── colorpalette/      # 主题配色页面
 │   │   │   │   │   │   ├── ColorPaletteScreen.kt
-│   │   │   │   │   │   ├── ColorPaletteViewModel.kt
-│   │   │   │   │   │   └── ColorUtils.kt
+│   │   │   │   │   │   ├── ColorPaletteScreenMiuix.kt
+│   │   │   │   │   │   └── ColorPaletteUiState.kt
 │   │   │   │   │   ├── debug/             # Debug调试页面
 │   │   │   │   │   │   └── DebugSettingsScreen.kt
 │   │   │   │   │   ├── home/              # 主页
+│   │   │   │   │   │   ├── HomeMiuix.kt
 │   │   │   │   │   │   ├── HomeScreen.kt
-│   │   │   │   │   │   ├── HomeScreenActions.kt
-│   │   │   │   │   │   ├── HomeScreenMiuix.kt
-│   │   │   │   │   │   └── HomeViewModel.kt
+│   │   │   │   │   │   ├── HomeUiState.kt
+│   │   │   │   │   │   └── HomeUtils.kt
 │   │   │   │   │   ├── login/             # 登录页面
 │   │   │   │   │   │   └── LoginScreen.kt
+│   │   │   │   │   ├── morefeatures/      # 更多功能
+│   │   │   │   │   │   └── MoreFeaturesScreen.kt
 │   │   │   │   │   ├── register/          # 注册页面
 │   │   │   │   │   │   └── RegisterScreen.kt
 │   │   │   │   │   ├── settings/          # 设置页面
+│   │   │   │   │   │   ├── SettingsMiuix.kt
 │   │   │   │   │   │   ├── SettingsScreen.kt
-│   │   │   │   │   │   ├── SettingsScreenMiuix.kt
-│   │   │   │   │   │   └── SettingsViewModel.kt
+│   │   │   │   │   │   └── SettingsUiState.kt
 │   │   │   │   │   ├── twofa/             # 双因素认证
+│   │   │   │   │   │   ├── TwoFADatabaseMiddleware.kt # 2FA数据库中间件
 │   │   │   │   │   │   └── TwoFAScreen.kt
 │   │   │   │   │   └── vault/             # 私密保险箱
-│   │   │   │   │       ├── ImageViewerScreen.kt  # 图片查看器
-│   │   │   │   │       ├── VideoPlayerScreen.kt  # 视频播放器
-│   │   │   │   │       ├── VaultScreen.kt        # 保险箱主页面
-│   │   │   │   │       ├── VaultDatabaseHelper.kt        # Vault表结构定义
-│   │   │   │   │       └── VaultDatabaseMiddleware.kt    # Vault数据库中间件
+│   │   │   │   │       ├── DatabaseTest.kt          # 数据库测试
+│   │   │   │   │       ├── ImageViewerScreen.kt     # 图片查看器
+│   │   │   │   │       ├── ProfessionalVideoPlayerScreen.kt # 专业视频播放器
+│   │   │   │   │       ├── VaultScreen.kt           # 保险箱主页面
+│   │   │   │   │       ├── VaultDatabaseHelper.kt   # Vault表结构定义
+│   │   │   │   │       ├── VaultDatabaseMiddleware.kt # Vault数据库中间件
+│   │   │   │   │       └── VideoPlayerScreen.kt     # 视频播放器
 │   │   │   │   ├── theme/                 # 主题系统
 │   │   │   │   │   ├── Colors.kt          # 颜色定义
 │   │   │   │   │   ├── MiuixTheme.kt      # Miuix主题配置
 │   │   │   │   │   └── Theme.kt           # 应用主题
 │   │   │   │   ├── util/                  # 工具类
+│   │   │   │   │   ├── AccountManager.kt  # 账户管理（SharedPreferences）
+│   │   │   │   │   ├── AnimationConfig.kt # 动画配置
+│   │   │   │   │   ├── BlurExt.kt         # 模糊效果扩展
+│   │   │   │   │   ├── Colors.kt          # 颜色工具
 │   │   │   │   │   ├── DataBase.kt        # 主数据库模块
+│   │   │   │   │   ├── DebounceModifier.kt# 防抖修饰符
+│   │   │   │   │   ├── DebounceUtils.kt   # 防抖工具函数
 │   │   │   │   │   ├── Debug.kt           # Debug模式检测工具
 │   │   │   │   │   ├── DebugShellReceiver.kt  # Debug调试接口
-│   │   │   │   │   ├── UserManager.kt     # 用户信息管理（SQLite）
-│   │   │   │   │   ├── AccountManager.kt  # 账户管理（SharedPreferences）
-│   │   │   │   │   ├── DebounceUtils.kt   # 防抖工具函数
-│   │   │   │   │   ├── DebounceModifier.kt# 防抖修饰符
+│   │   │   │   │   ├── DeferredContent.kt # 延迟内容加载
+│   │   │   │   │   ├── DownloadManager.kt # 下载管理器
 │   │   │   │   │   ├── ErrorReporter.kt   # 错误报告系统
-│   │   │   │   │   ├── LsfEncoder.kt      # LSF编码/解码器（可选）
+│   │   │   │   │   ├── HanziToPinyin.java # 汉字转拼音
+│   │   │   │   │   ├── HapticFeedbackUtil.kt  # 震动反馈工具
+│   │   │   │   │   ├── KeystoreManager.kt # 密钥管理
+│   │   │   │   │   ├── LatestVersionInfo.kt # 最新版本信息
+│   │   │   │   │   ├── MessageManager.kt  # 消息管理器
+│   │   │   │   │   ├── Network.kt         # 网络工具
+│   │   │   │   │   ├── NetworkClient.kt   # 网络通信中枢
+│   │   │   │   │   ├── NotificationHelper.kt # 通知助手
 │   │   │   │   │   ├── OOBE.kt            # 设备绑定验证模块
 │   │   │   │   │   ├── OemHelper.kt       # OEM检测工具
-│   │   │   │   │   ├── NetworkClient.kt   # 网络通信中枢
-│   │   │   │   │   ├── MessageManager.kt  # 消息管理器
-│   │   │   │   │   ├── VaultEncryptionManager.kt  # Vault文件加密管理器
-│   │   │   │   │   ├── DialogManager.kt   # 对话框管理
-│   │   │   │   │   ├── HapticFeedbackUtil.kt  # 震动反馈工具
-│   │   │   │   │   ├── PermissionHelper.kt    # 权限助手
 │   │   │   │   │   ├── ShareUtil.kt       # 分享工具
-│   │   │   │   │   └── WindowInsetsUtil.kt    # 窗口 insets 工具
+│   │   │   │   │   ├── ShizukuUtil.kt     # Shizuku工具
+│   │   │   │   │   ├── SuperIslandHelper.kt # 超级岛助手
+│   │   │   │   │   ├── UpdateChecker.kt   # 更新检查器
+│   │   │   │   │   ├── UserManager.kt     # 用户信息管理（SQLite）
+│   │   │   │   │   └── VaultEncryptionManager.kt  # Vault文件加密管理器
 │   │   │   │   ├── viewmodel/             # ViewModel
 │   │   │   │   │   ├── AboutViewModel.kt
-│   │   │   │   │   ├── ColorPaletteViewModel.kt
+│   │   │   │   │   ├── CategoryManager.kt
+│   │   │   │   │   ├── CategoryViewModel.kt
 │   │   │   │   │   ├── HomeViewModel.kt
-│   │   │   │   │   ├── SettingsViewModel.kt
-│   │   │   │   │   └── VaultViewModel.kt
+│   │   │   │   │   ├── MainActivityUiState.kt
+│   │   │   │   │   ├── MainActivityViewModel.kt
+│   │   │   │   │   └── SettingsViewModel.kt
 │   │   │   │   ├── MainActivity.kt        # 主Activity
 │   │   │   │   └── UiMode.kt              # UI模式枚举
 │   │   │   └── lsfTBApplication.kt        # Application类
@@ -201,7 +219,6 @@ lsfTB/
 - **文件格式**：.tb（加密后的文件扩展名）
 - **临时文件**：预览时自动解密到 cache 目录，使用后删除
 
-详细说明请参考 [1.md](1.md) 中的 "Vault 文件加密实现规范" 章节。
 
 ## 许可证
 
