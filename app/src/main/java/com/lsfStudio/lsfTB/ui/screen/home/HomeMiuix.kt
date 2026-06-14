@@ -240,7 +240,7 @@ fun HomePagerMiuix(
                     ) {
                         InfoText(
                             title = "应用名称",
-                            content = state.appName
+                            content = "lsfTB(理梦星凝特供)"
                         )
                         InfoText(
                             title = "应用版本",
@@ -317,7 +317,7 @@ private fun TopBar(
     BlurredBar(backdrop) {
         TopAppBar(
             color = barColor,
-            title = "lsfTB",
+            title = "lsfTB(理梦星凝特供版)",
             scrollBehavior = scrollBehavior
         )
     }

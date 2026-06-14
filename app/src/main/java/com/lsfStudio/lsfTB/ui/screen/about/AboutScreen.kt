@@ -27,7 +27,7 @@ fun AboutScreen() {
     // 初始化 ViewModel
     LaunchedEffect(Unit) {
         viewModel.initialize(
-            appName = "lsfTB",
+            appName = "lsfTB(理梦星凝特供版)",
             versionName = "${BuildConfig.VERSION_NAME}_${BuildConfig.VERSION_CODE}",
             links = extractLinks(htmlString)
         )
