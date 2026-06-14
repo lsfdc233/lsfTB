@@ -8,7 +8,7 @@
 ![API](https://img.shields.io/badge/API-31+-34A853?logo=android)
 ![Version](https://img.shields.io/badge/Version-v1.6.9-blue)
 
-某神秘初中牲突发奇想基于miuix制作的个人数字中枢
+某入闲的没事，瞎几把开发
 
 </div>
 
