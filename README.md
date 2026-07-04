@@ -119,7 +119,7 @@ lsfTB/
 │   │   │   │   │   └── vault/             # 私密保险箱
 │   │   │   │   │       ├── DatabaseTest.kt          # 数据库测试
 │   │   │   │   │       ├── ImageViewerScreen.kt     # 图片查看器
-│   │   │   │   │       ├── ProfessionalVideoPlayerScreen.kt # 专业视频播放器
+│   │   │   │   │       ├── ProfessionalVideoPlayerScreen.kt # 视频播放器
 │   │   │   │   │       ├── VaultScreen.kt           # 保险箱主页面
 │   │   │   │   │       ├── VaultDatabaseHelper.kt   # Vault表结构定义
 │   │   │   │   │       ├── VaultDatabaseMiddleware.kt # Vault数据库中间件
@@ -210,14 +210,7 @@ lsfTB/
 ### 并行构建
 项目已启用 Gradle 并行构建。
 
-### Vault 文件加密
 
-私密保险箱使用 AES-256-GCM 对文件进行硬件级加密：
-
-- **加密算法**：AES-256-GCM（带认证标签）
-- **密钥存储**：Android Keystore（硬件保护，不可导出）
-- **文件格式**：.tb（加密后的文件扩展名）
-- **临时文件**：预览时自动解密到 cache 目录，使用后删除
 
 
 ## 许可证
